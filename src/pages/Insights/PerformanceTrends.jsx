@@ -84,15 +84,17 @@ const PerformanceTrends = ({ period = "Month", selectedClass = "all" }) => {
   );
 
   useEffect(() => {
-  
-    setChartData(rawData.map((d) => ({ label: d.label, value: 0 })));
+    // Reset to zero first (for animation), then fill with real values after a short delay
+    const zeroData = rawData.map((d) => ({ label: d.label, value: 0 }));
+    setChartData(zeroData);
 
     const t = setTimeout(() => {
       setChartData(rawData.map((d) => ({ label: d.label, value: d[dataKey] })));
     }, 80);
 
     return () => clearTimeout(t);
-  }, [activeView, period, selectedClass]); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeView, period, selectedClass, dataKey, rawData]);
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 50);
@@ -106,19 +108,18 @@ const PerformanceTrends = ({ period = "Month", selectedClass = "all" }) => {
       animate="visible"
       className="bg-white rounded-xl border p-6 mb-8 border-gray-200"
     >
-  
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold">Performance Trends</h3>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h3 className="text-xl font-bold whitespace-nowrap">Performance Trends</h3>
         <div className="flex items-center space-x-2">
           {["Performance", "AI Accuracy"].map((v) => (
             <button
               key={v}
               onClick={() => setActiveView(v)}
-              className={`inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-8 rounded-md px-3 transition-all ${
-                activeView === v
-                  ? "bg-black text-white shadow-md"
-                  : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+              className={`inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-8 rounded-md px-3 transition-all ${activeView === v
+                ? "bg-black text-white shadow-md"
+                : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                }`}
             >
               {v}
             </button>
@@ -135,7 +136,7 @@ const PerformanceTrends = ({ period = "Month", selectedClass = "all" }) => {
             >
               <defs>
                 <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#3B82F6" stopOpacity={0.3} />
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.02} />
                 </linearGradient>
               </defs>

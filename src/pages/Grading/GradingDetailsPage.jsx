@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { ASSIGNMENT_DETAIL, STATUS_STYLES } from "./GradingData";
 
-const StatusBadge = ({ status }) => (
+export const StatusBadge = ({ status }) => (
   <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium whitespace-nowrap ${STATUS_STYLES[status] || STATUS_STYLES.Pending}`}>
     {status}
   </span>
@@ -219,8 +219,8 @@ const StudentCard = ({ student, assignment, isApprovedAll, onApproveCountChange 
         <button
           onClick={handleApprove}
           className={`flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-lg text-sm font-semibold transition-colors ${effectiveApproved
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : "bg-green-600 hover:bg-green-700 text-white"
+            ? "bg-green-500 hover:bg-green-600 text-white"
+            : "bg-green-600 hover:bg-green-700 text-white"
             }`}
         >
           <CircleCheckBig className="w-4 h-4" />
@@ -251,63 +251,61 @@ const GradingDetailPage = ({ assignment, allAssignments, onBack, onSwitchAssignm
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        <div className="mb-8">
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-2 h-9 px-4 mb-6 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+      <div className="mb-8">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 h-9 px-4 mb-6 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Assignments
+        </button>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-600 mb-2">Assignment Title</label>
+          <select
+            value={assignment.id}
+            onChange={(e) => onSwitchAssignment(Number(e.target.value))}
+            className="w-full md:w-96 h-9 rounded-md border border-gray-200 px-3 bg-white text-sm outline-none focus:border-blue-400 cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Assignments
-          </button>
+            {allAssignments.map((a) => (
+              <option key={a.id} value={a.id}>{a.title}</option>
+            ))}
+          </select>
+        </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-600 mb-2">Assignment Title</label>
-            <select
-              value={assignment.id}
-              onChange={(e) => onSwitchAssignment(Number(e.target.value))}
-              className="w-full md:w-96 h-9 rounded-md border border-gray-200 px-3 bg-white text-sm outline-none focus:border-blue-400 cursor-pointer"
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{assignment.title}</h1>
+            <p className="text-gray-600">Total Points: {assignment.points} | Students: {assignment.submissions}</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleApproveAll}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
             >
-              {allAssignments.map((a) => (
-                <option key={a.id} value={a.id}>{a.title}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{assignment.title}</h1>
-              <p className="text-gray-600">Total Points: {assignment.points} | Students: {assignment.submissions}</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={handleApproveAll}
-                className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
-              >
-                <CircleCheckBig className="w-4 h-4" /> Approve All
-              </button>
-              <button
-                disabled={approvedCount === 0}
-                className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
-              >
-                <Send className="w-4 h-4" /> Send All Approved ({approvedCount})
-              </button>
-            </div>
+              <CircleCheckBig className="w-4 h-4" /> Approve All
+            </button>
+            <button
+              disabled={approvedCount === 0}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+            >
+              <Send className="w-4 h-4" /> Send All Approved ({approvedCount})
+            </button>
           </div>
         </div>
+      </div>
 
-        <div className="grid gap-6">
-          {students.map((s) => (
-            <StudentCard
-              key={s.id}
-              student={s}
-              assignment={assignment}
-              isApprovedAll={approveAllActive}
-              onApproveCountChange={handleApproveCountChange}
-            />
-          ))}
-        </div>
+      <div className="grid gap-6">
+        {students.map((s) => (
+          <StudentCard
+            key={s.id}
+            student={s}
+            assignment={assignment}
+            isApprovedAll={approveAllActive}
+            onApproveCountChange={handleApproveCountChange}
+          />
+        ))}
       </div>
     </div>
   );

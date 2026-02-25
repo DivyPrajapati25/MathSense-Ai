@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Award, Users, Calendar, Eye, ArrowRight, X, CircleCheck, Clock } from "lucide-react";
+import useScrollLock from "../../../hooks/useScrollLock";
 
 const ASSIGNMENTS_DATA = [
   {
@@ -11,13 +12,13 @@ const ASSIGNMENTS_DATA = [
     date: "Sep 28, 2025",
     students: [
       { name: "Sarah Martinez", submitted: "Sep 28, 2025", graded: true },
-      { name: "Liam Chen",      submitted: "Sep 28, 2025", graded: true },
-      { name: "Ava Johnson",    submitted: "Sep 28, 2025", graded: false },
-      { name: "Noah Patel",     submitted: "Sep 28, 2025", graded: false },
-      { name: "Emma Davis",     submitted: "Sep 28, 2025", graded: false },
-      { name: "Oliver Brown",   submitted: "Sep 28, 2025", graded: true },
-      { name: "Sophia Wilson",  submitted: "Sep 28, 2025", graded: true },
-      { name: "James Miller",   submitted: "Sep 28, 2025", graded: false },
+      { name: "Liam Chen", submitted: "Sep 28, 2025", graded: true },
+      { name: "Ava Johnson", submitted: "Sep 28, 2025", graded: false },
+      { name: "Noah Patel", submitted: "Sep 28, 2025", graded: false },
+      { name: "Emma Davis", submitted: "Sep 28, 2025", graded: false },
+      { name: "Oliver Brown", submitted: "Sep 28, 2025", graded: true },
+      { name: "Sophia Wilson", submitted: "Sep 28, 2025", graded: true },
+      { name: "James Miller", submitted: "Sep 28, 2025", graded: false },
     ],
   },
   {
@@ -28,12 +29,12 @@ const ASSIGNMENTS_DATA = [
     submissions: 28,
     date: "Sep 25, 2025",
     students: [
-      { name: "Emma Johnson",   submitted: "Sep 25, 2025", graded: true },
-      { name: "Marcus Williams",submitted: "Sep 25, 2025", graded: false },
-      { name: "Liam Anderson",  submitted: "Sep 25, 2025", graded: true },
-      { name: "Sophia Martinez",submitted: "Sep 25, 2025", graded: false },
-      { name: "Noah Brown",     submitted: "Sep 25, 2025", graded: true },
-      { name: "Olivia Davis",   submitted: "Sep 25, 2025", graded: false },
+      { name: "Emma Johnson", submitted: "Sep 25, 2025", graded: true },
+      { name: "Marcus Williams", submitted: "Sep 25, 2025", graded: false },
+      { name: "Liam Anderson", submitted: "Sep 25, 2025", graded: true },
+      { name: "Sophia Martinez", submitted: "Sep 25, 2025", graded: false },
+      { name: "Noah Brown", submitted: "Sep 25, 2025", graded: true },
+      { name: "Olivia Davis", submitted: "Sep 25, 2025", graded: false },
     ],
   },
   {
@@ -44,9 +45,9 @@ const ASSIGNMENTS_DATA = [
     submissions: 28,
     date: "Sep 23, 2025",
     students: [
-      { name: "Charlotte Lee",  submitted: "Sep 23, 2025", graded: true },
-      { name: "Ethan Moore",    submitted: "Sep 23, 2025", graded: true },
-      { name: "Isabella Taylor",submitted: "Sep 23, 2025", graded: false },
+      { name: "Charlotte Lee", submitted: "Sep 23, 2025", graded: true },
+      { name: "Ethan Moore", submitted: "Sep 23, 2025", graded: true },
+      { name: "Isabella Taylor", submitted: "Sep 23, 2025", graded: false },
     ],
   },
   {
@@ -57,8 +58,8 @@ const ASSIGNMENTS_DATA = [
     submissions: 28,
     date: "Sep 20, 2025",
     students: [
-      { name: "Benjamin Harris",submitted: "Sep 20, 2025", graded: false },
-      { name: "Amelia Clark",   submitted: "Sep 20, 2025", graded: true },
+      { name: "Benjamin Harris", submitted: "Sep 20, 2025", graded: false },
+      { name: "Amelia Clark", submitted: "Sep 20, 2025", graded: true },
     ],
   },
   {
@@ -69,18 +70,13 @@ const ASSIGNMENTS_DATA = [
     submissions: 28,
     date: "Sep 18, 2025",
     students: [
-      { name: "Lucas Walker",   submitted: "Sep 18, 2025", graded: true },
-      { name: "Mia Thompson",   submitted: "Sep 18, 2025", graded: false },
+      { name: "Lucas Walker", submitted: "Sep 18, 2025", graded: true },
+      { name: "Mia Thompson", submitted: "Sep 18, 2025", graded: false },
     ],
   },
 ];
 
-const useScrollLock = (active) => {
-  useEffect(() => {
-    if (active) document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, [active]);
-};
+
 
 const GradedBadge = ({ graded }) =>
   graded ? (
@@ -103,7 +99,7 @@ const StudentRow = ({ name, submitted, graded }) => (
   </div>
 );
 const ViewDetailsModal = ({ assignment, onClose }) => {
-  useScrollLock(true);
+  useScrollLock();
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
@@ -151,7 +147,7 @@ const ViewDetailsModal = ({ assignment, onClose }) => {
 };
 
 const ViewAllModal = ({ onClose }) => {
-  useScrollLock(true);
+  useScrollLock();
   const [detailAssignment, setDetailAssignment] = useState(null);
 
   return (
@@ -174,9 +170,9 @@ const ViewAllModal = ({ onClose }) => {
             {ASSIGNMENTS_DATA.map((a) => (
               <div
                 key={a.id}
-                className="flex flex-col gap-6 rounded-xl border border-gray-200 p-6 bg-white shadow-lg hover:shadow-xl transition-shadow"
+                className="flex flex-col gap-4 rounded-xl border border-gray-200 p-4 sm:p-6 bg-white shadow-lg hover:shadow-xl transition-shadow"
               >
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="flex flex-col gap-3">
                   <div className="flex-1">
                     <h3 className="text-xl font-medium mb-2">{a.title}</h3>
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-2">
@@ -195,7 +191,7 @@ const ViewAllModal = ({ onClose }) => {
                     </div>
                   </div>
                   {/* Buttons */}
-                  <div className="flex gap-3 lg:shrink-0">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button className="inline-flex items-center justify-center h-9 px-4 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors w-full sm:w-auto">
                       Grade
                     </button>
@@ -263,15 +259,15 @@ const AssignmentCard = ({ assignment, onViewDetails }) => {
           </div>
         </div>
       </div>
-      <div className="flex gap-3">
-        <button className="flex-1 inline-flex items-center justify-center h-9 px-4 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors focus:outline-none">
+      <div className="flex flex-row gap-3">
+        <button className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors focus:outline-none whitespace-nowrap">
           Grade
         </button>
         <button
           onClick={() => onViewDetails(assignment)}
-          className="flex-1 inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 transition-colors focus:outline-none"
+          className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-md text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 transition-colors focus:outline-none whitespace-nowrap"
         >
-          <Eye className="w-4 h-4 mr-2" /> View Details
+          <Eye className="w-4 h-4 shrink-0" /> View Details
         </button>
       </div>
     </div>
@@ -279,19 +275,20 @@ const AssignmentCard = ({ assignment, onViewDetails }) => {
 };
 
 const YourAssignments = () => {
-  const [viewAllOpen, setViewAllOpen]       = useState(false);
+  const [viewAllOpen, setViewAllOpen] = useState(false);
   const [detailAssignment, setDetailAssignment] = useState(null);
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-gray-900">Your Assignments</h2>
+      <div className="flex flex-row items-center justify-between gap-3 mb-6">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Your Assignments</h2>
         <button
-          onClick={() => setViewAllOpen(true)}
-          className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 transition-colors focus:outline-none"
-        >
-          View All <ArrowRight className="w-4 h-4 ml-2" />
-        </button>
+  onClick={() => setViewAllOpen(true)}
+  className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-md text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 transition-colors focus:outline-none whitespace-nowrap w-auto"
+>
+  View All
+  <ArrowRight className="w-4 h-4" />
+</button>
       </div>
 
       <div className="grid gap-6">

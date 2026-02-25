@@ -5,6 +5,7 @@ import {
   CheckCircle, Lightbulb, Film, Link,
 } from "lucide-react";
 import { backdropVariants, modalVariants } from "../../utils/animations";
+import useScrollLock from "../../hooks/useScrollLock";
 
 const INITIAL_UNITS = [
   {
@@ -12,9 +13,9 @@ const INITIAL_UNITS = [
     title: "Unit 1: Algebra Fundamentals",
     desc: "Linear equations, expressions, and basic algebraic concepts",
     resources: [
-      { id: 1, name: "Chapter 1 Textbook",  type: "PDF",  color: "red"    },
-      { id: 2, name: "Practice Worksheets", type: "DOCX", color: "blue"   },
-      { id: 3, name: "Video Tutorials",     type: "MP4",  color: "purple" },
+      { id: 1, name: "Chapter 1 Textbook", type: "PDF", color: "red" },
+      { id: 2, name: "Practice Worksheets", type: "DOCX", color: "blue" },
+      { id: 3, name: "Video Tutorials", type: "MP4", color: "purple" },
     ],
   },
   {
@@ -22,9 +23,9 @@ const INITIAL_UNITS = [
     title: "Unit 2: Geometry Basics",
     desc: "Angles, shapes, area, perimeter, and geometric properties",
     resources: [
-      { id: 4, name: "Geometry Guide",       type: "PDF",  color: "red"   },
-      { id: 5, name: "Interactive Diagrams", type: "PNG",  color: "green" },
-      { id: 6, name: "Problem Sets",         type: "DOCX", color: "blue"  },
+      { id: 4, name: "Geometry Guide", type: "PDF", color: "red" },
+      { id: 5, name: "Interactive Diagrams", type: "PNG", color: "green" },
+      { id: 6, name: "Problem Sets", type: "DOCX", color: "blue" },
     ],
   },
   {
@@ -32,9 +33,9 @@ const INITIAL_UNITS = [
     title: "Unit 3: Trigonometry Intro",
     desc: "Sine, cosine, tangent, and right triangle relationships",
     resources: [
-      { id: 7, name: "Trig Reference Sheet", type: "PDF",  color: "red"   },
-      { id: 8, name: "Practice Problems",    type: "DOCX", color: "blue"  },
-      { id: 9, name: "Calculator Guide",     type: "PPT",  color: "green" },
+      { id: 7, name: "Trig Reference Sheet", type: "PDF", color: "red" },
+      { id: 8, name: "Practice Problems", type: "DOCX", color: "blue" },
+      { id: 9, name: "Calculator Guide", type: "PPT", color: "green" },
     ],
   },
 ];
@@ -48,18 +49,18 @@ const extColorMap = {
 };
 
 const colorStyles = {
-  red:    { bg: "bg-red-100",    icon: "text-red-600"    },
-  blue:   { bg: "bg-blue-100",   icon: "text-blue-600"   },
+  red: { bg: "bg-red-100", icon: "text-red-600" },
+  blue: { bg: "bg-blue-100", icon: "text-blue-600" },
   purple: { bg: "bg-purple-100", icon: "text-purple-600" },
-  green:  { bg: "bg-green-100",  icon: "text-green-600"  },
+  green: { bg: "bg-green-100", icon: "text-green-600" },
 };
 
 const FileBadge = ({ type, color, size = "md" }) => {
   const styles = colorStyles[color] || colorStyles.blue;
   const isVideo = ["MP4", "MOV", "AVI"].includes(type);
-  const isLink  = type === "URL";
+  const isLink = type === "URL";
   const IconComp = isVideo ? Film : isLink ? Link : FileText;
-  const dim      = size === "sm" ? "w-6 h-6" : "w-8 h-8";
+  const dim = size === "sm" ? "w-6 h-6" : "w-8 h-8";
   const iconSize = size === "sm" ? 12 : 15;
   return (
     <div className={`${dim} rounded-lg ${styles.bg} flex items-center justify-center shrink-0`}>
@@ -68,27 +69,11 @@ const FileBadge = ({ type, color, size = "md" }) => {
   );
 };
 
-const useScrollLock = () => {
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = "100%";
-    document.body.style.overflowY = "scroll";
-    return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      document.body.style.overflowY = "";
-      window.scrollTo({ top: scrollY, behavior: "instant" });
-    };
-  }, []);
-};
 
 const AddMaterialsModal = ({ unit, onClose, onSave }) => {
   const [resources, setResources] = useState([...unit.resources]);
   const [linkInput, setLinkInput] = useState("");
-  const [dragOver,  setDragOver]  = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
 
   useScrollLock();
@@ -114,7 +99,7 @@ const AddMaterialsModal = ({ unit, onClose, onSave }) => {
   };
 
   const handleDelete = (id) => setResources((r) => r.filter((x) => x.id !== id));
-  const handleSave   = () => { onSave(unit.id, resources); onClose(); };
+  const handleSave = () => { onSave(unit.id, resources); onClose(); };
 
   return (
     <motion.div
@@ -125,13 +110,13 @@ const AddMaterialsModal = ({ unit, onClose, onSave }) => {
       onClick={onClose}
     >
       <motion.div
-        className="bg-white rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden"
+        className="bg-white rounded-2xl w-full max-w-[calc(100%-2rem)] sm:max-w-md flex flex-col shadow-2xl overflow-hidden"
         style={{ maxHeight: "90vh" }}
         variants={modalVariants}
         initial="hidden" animate="visible" exit="hidden"
         onClick={(e) => e.stopPropagation()}
       >
-     
+
         <div className="px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -194,17 +179,17 @@ const AddMaterialsModal = ({ unit, onClose, onSave }) => {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-900 block">Paste Resource Link</label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 value={linkInput}
                 onChange={(e) => setLinkInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAddLink()}
                 placeholder="https://example.com/resource"
-                className="flex-1 h-9 border border-gray-200 rounded-lg px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none bg-gray-50 focus:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all"
+                className="flex-1 h-9 border border-gray-200 rounded-lg px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none bg-gray-50 focus:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all min-w-0"
               />
               <button
                 onClick={handleAddLink}
-                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border border-blue-300 bg-white text-blue-600 text-sm font-medium whitespace-nowrap hover:bg-blue-50 transition-colors"
+                className="inline-flex items-center justify-center gap-1.5 px-3 h-9 rounded-lg border border-blue-300 bg-white text-blue-600 text-sm font-medium whitespace-nowrap hover:bg-blue-50 transition-colors w-full sm:w-auto shrink-0"
               >
                 <Plus size={13} /> Add Link
               </button>
@@ -252,19 +237,19 @@ const AddMaterialsModal = ({ unit, onClose, onSave }) => {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 bg-white flex items-center justify-end gap-3">
+        <div className="px-6 py-4 border-t border-gray-100 bg-white flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
           <button
             onClick={onClose}
-            className="h-9 px-5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="h-9 px-5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="inline-flex items-center gap-2 h-9 px-5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-purple-200"
+            className="inline-flex items-center justify-center gap-2 h-9 px-5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-purple-200 w-full sm:w-auto"
           >
             <CheckCircle size={16} />
-            Save &amp; Attach Materials
+            Save & Attach Materials
           </button>
         </div>
       </motion.div>
@@ -273,11 +258,11 @@ const AddMaterialsModal = ({ unit, onClose, onSave }) => {
 };
 
 const CreateNewUnitModal = ({ onClose, onSave }) => {
-  const [unitName,      setUnitName]      = useState("");
-  const [description,   setDescription]   = useState("");
-  const [links,         setLinks]         = useState([""]);
-  const [tagInput,      setTagInput]      = useState("");
-  const [tags,          setTags]          = useState([]);
+  const [unitName, setUnitName] = useState("");
+  const [description, setDescription] = useState("");
+  const [links, setLinks] = useState([""]);
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const fileRef = useRef(null);
 
@@ -289,10 +274,10 @@ const CreateNewUnitModal = ({ onClose, onSave }) => {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const handleFiles     = (files) => setUploadedFiles((p) => [...p, ...Array.from(files).map((f) => f.name)]);
-  const handleAddLink   = () => setLinks((l) => [...l, ""]);
-  const handleLinkChange= (i, v) => setLinks((l) => l.map((x, idx) => idx === i ? v : x));
-  const handleAddTag    = () => {
+  const handleFiles = (files) => setUploadedFiles((p) => [...p, ...Array.from(files).map((f) => f.name)]);
+  const handleAddLink = () => setLinks((l) => [...l, ""]);
+  const handleLinkChange = (i, v) => setLinks((l) => l.map((x, idx) => idx === i ? v : x));
+  const handleAddTag = () => {
     const t = tagInput.trim();
     if (t && !tags.includes(t)) setTags((p) => [...p, t]);
     setTagInput("");
@@ -320,7 +305,7 @@ const CreateNewUnitModal = ({ onClose, onSave }) => {
       onClick={onClose}
     >
       <motion.div
-        className="bg-white rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden"
+        className="bg-white rounded-2xl w-full max-w-[calc(100%-2rem)] sm:max-w-lg flex flex-col shadow-2xl overflow-hidden"
         style={{ maxHeight: "90vh" }}
         variants={modalVariants} initial="hidden" animate="visible" exit="hidden"
         onClick={(e) => e.stopPropagation()}
@@ -504,12 +489,12 @@ const AddMoreCard = ({ onCreateUnit }) => {
 };
 
 const UnitTeachingMaterials = () => {
-  const [units,          setUnits]          = useState(INITIAL_UNITS);
-  const [activeUnit,     setActiveUnit]     = useState(null);
+  const [units, setUnits] = useState(INITIAL_UNITS);
+  const [activeUnit, setActiveUnit] = useState(null);
   const [createUnitOpen, setCreateUnitOpen] = useState(false);
 
-  const handleSave       = (unitId, newRes) => setUnits((p) => p.map((u) => u.id === unitId ? { ...u, resources: newRes } : u));
-  const handleCreateUnit = (newUnit)        => setUnits((p) => [...p, newUnit]);
+  const handleSave = (unitId, newRes) => setUnits((p) => p.map((u) => u.id === unitId ? { ...u, resources: newRes } : u));
+  const handleCreateUnit = (newUnit) => setUnits((p) => [...p, newUnit]);
 
   return (
     <section className="mb-16">
@@ -524,8 +509,8 @@ const UnitTeachingMaterials = () => {
       </div>
       <AddMoreCard onCreateUnit={() => setCreateUnitOpen(true)} />
       <AnimatePresence>
-        {activeUnit     && <AddMaterialsModal  key="add-materials" unit={activeUnit} onClose={() => setActiveUnit(null)}     onSave={handleSave}       />}
-        {createUnitOpen && <CreateNewUnitModal key="create-unit"                     onClose={() => setCreateUnitOpen(false)} onSave={handleCreateUnit} />}
+        {activeUnit && <AddMaterialsModal key="add-materials" unit={activeUnit} onClose={() => setActiveUnit(null)} onSave={handleSave} />}
+        {createUnitOpen && <CreateNewUnitModal key="create-unit" onClose={() => setCreateUnitOpen(false)} onSave={handleCreateUnit} />}
       </AnimatePresence>
     </section>
   );

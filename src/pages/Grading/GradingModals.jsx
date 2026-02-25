@@ -2,23 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, CheckCircle, Sparkles, X } from "lucide-react";
 import { backdropVariants, modalVariants } from "../../utils/animations";
-
-const useScrollLock = () => {
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = "100%";
-    document.body.style.overflowY = "scroll";
-    return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      document.body.style.overflowY = "";
-      window.scrollTo({ top: scrollY, behavior: "instant" });
-    };
-  }, []);
-};
+import useScrollLock from "../../hooks/useScrollLock";
 
 export const ProcessingModal = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
@@ -77,7 +61,7 @@ export const ProcessingModal = ({ onComplete }) => {
   );
 };
 
-export const ViewDetailsModal = ({ assignment, students, onClose }) => {
+export const ViewDetailsModal = ({ assignment: _assignment, students, onClose }) => {
   useScrollLock();
 
   return (
@@ -111,9 +95,9 @@ export const ViewDetailsModal = ({ assignment, students, onClose }) => {
 
         <div className="overflow-y-auto flex-1 px-6 py-4 pr-4">
           {students.map((s, idx) => {
-            const aiScore    = s.aiScore    ?? s.questions.reduce((sum, q) => sum + q.aiScore, 0);
+            const aiScore = s.aiScore ?? s.questions.reduce((sum, q) => sum + q.aiScore, 0);
             const finalScore = s.finalScore ?? aiScore;
-            const maxScore   = s.maxScore   ?? s.questions.reduce((sum, q) => sum + q.maxScore, 0);
+            const maxScore = s.maxScore ?? s.questions.reduce((sum, q) => sum + q.maxScore, 0);
 
             return (
               <div
@@ -173,7 +157,7 @@ export const ViewDetailsModal = ({ assignment, students, onClose }) => {
     </motion.div>
   );
 };
-export const GradeModal = ({ assignment, students, onClose, onGrade }) => {
+export const GradeModal = ({ assignment: _assignment, students, onClose, onGrade }) => {
   useScrollLock();
 
   return (
@@ -189,7 +173,7 @@ export const GradeModal = ({ assignment, students, onClose, onGrade }) => {
         variants={modalVariants} initial="hidden" animate="visible" exit="hidden"
         onClick={(e) => e.stopPropagation()}
       >
-     
+
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-start justify-between mb-1">
             <h2 className="text-lg font-semibold text-gray-900">Start Grading</h2>

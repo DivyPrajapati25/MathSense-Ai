@@ -37,7 +37,7 @@ const StatusBadge = ({ status }) => {
         inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium whitespace-nowrap
         ${isQueued
           ? "bg-gray-100 border-gray-200 text-gray-600"
-          : "bg-gray-100 border-gray-200 text-gray-600"
+          : "bg-green-100 border-green-200 text-green-700"
         }
       `}
     >
@@ -50,14 +50,14 @@ const AssignmentRow = ({ assignment }) => (
   <motion.div
     variants={cardVariants}
     className="
-      flex items-center justify-between
+      flex flex-col sm:flex-row sm:items-center justify-between gap-3
       bg-white border border-gray-200 rounded-xl px-4 py-3
       hover:shadow-sm transition-shadow
     "
   >
 
     <div className="flex items-center gap-3 min-w-0">
-  
+
       <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
         <FileText className="w-5 h-5 text-blue-600" />
       </div>
@@ -76,7 +76,7 @@ const AssignmentRow = ({ assignment }) => (
       </div>
     </div>
 
-    <div className="flex items-center gap-3 shrink-0 ml-4">
+    <div className="flex items-center gap-3 shrink-0 sm:ml-4">
       <StatusBadge status={assignment.status} />
       <button className="
         inline-flex items-center gap-1.5 h-11 px-4 rounded-lg

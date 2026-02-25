@@ -1,1 +1,76 @@
 @import "tailwindcss";
+
+/* ── Box-sizing reset ──────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Cursor for interactive elements ───────────────────── */
+button,
+[role="button"] {
+    cursor: pointer;
+}
+
+/* ── Touch-friendly minimum hit target ─────────────────── */
+button,
+a[role="button"],
+[role="button"] {
+    min-height: 44px;
+}
+
+/* Exclude compact / small buttons from the min-height rule */
+button.compact,
+button[role="switch"],
+[role="switch"],
+button[class*="h-5"],
+button[class*="h-8"],
+button[class*="h-9"],
+button[class*="p-1"],
+button[class*="p-0"],
+button[class*="w-8"],
+button[class*="py-0"],
+button[class*="py-1"],
+button[class*="rounded-sm"],
+button[class*="rounded-full"] {
+    min-height: unset;
+}
+
+/* ── Global text overflow prevention ───────────────────── */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+label {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+    .text-3xl {
+        font-size: 1.5rem;
+        line-height: 2rem;
+    }
+
+    button,
+    a,
+    [role="button"] {
+        -webkit-tap-highlight-color: transparent;
+    }
+}

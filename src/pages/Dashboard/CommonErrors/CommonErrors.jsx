@@ -65,9 +65,9 @@ const ERRORS_DATA = [
 ];
 
 const difficultyStyles = {
-  Low:    "bg-green-100 text-green-800",
+  Low: "bg-green-100 text-green-800",
   Medium: "bg-yellow-100 text-yellow-800",
-  High:   "bg-red-100 text-red-800",
+  High: "bg-red-100 text-red-800",
 };
 
 const DifficultyBadge = ({ level }) => (
@@ -145,7 +145,7 @@ const FilterSelect = ({ label, value, onChange, options }) => {
 const CommonErrors = () => {
   const [assignmentFilter, setAssignmentFilter] = useState("All Assignments");
   const [difficultyFilter, setDifficultyFilter] = useState("All Levels");
-  const [errorTypeFilter, setErrorTypeFilter]   = useState("All Types");
+  const [errorTypeFilter, setErrorTypeFilter] = useState("All Types");
 
   const handleClearFilters = () => {
     setAssignmentFilter("All Assignments");
@@ -165,7 +165,7 @@ const CommonErrors = () => {
 
   return (
     <section>
-      <h2 className="text-3xl font-bold text-gray-900 mb-6">Common Errors</h2>
+      <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Common Errors</h2>
 
       <div className="rounded-xl border border-gray-200 p-4 md:p-6 mb-6 bg-gray-50">
         <div className="grid grid-cols-1  sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

@@ -46,7 +46,7 @@ const CreateClassModal = ({ onClose, onCreate }) => {
             <motion.div
                 className="
                     fixed z-50 top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%]
-                    bg-white rounded-lg border shadow-lg
+                    bg-white rounded-lg border border-gray-200 shadow-lg
                     w-full max-w-[calc(100%-2rem)] sm:max-w-lg
                     p-6 gap-4
                 "
@@ -148,10 +148,10 @@ const ClassManagement = () => {
 
     return (
         <section>
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-gray-900">Class Management</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Class Management</h2>
                 <button onClick={() => setModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 outline-none h-9 px-3 bg-blue-600 hover:bg-blue-700 text-white">
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 outline-none h-9 px-3 bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />Create New Class
                 </button>
             </div>

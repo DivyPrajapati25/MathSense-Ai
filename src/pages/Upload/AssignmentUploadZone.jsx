@@ -1,88 +1,24 @@
 import { useState, useRef } from "react";
 import {
-  Users, Upload, ChevronDown, FileUp,
+  Users, Upload, FileUp,
   ArrowRight, Zap, FileText, Check,
   X, CircleCheck, Loader, File,
 } from "lucide-react";
-
-const CLASSES_DATA = [
-  {
-    id: 1,
-    label: "Class 1 (Grade 9) - 28 students",
-    students: [
-      "Emma Johnson", "Marcus Williams", "Liam Anderson", "Sophia Martinez",
-      "Noah Brown", "Olivia Davis", "Ethan Miller", "Ava Wilson",
-      "Mason Moore", "Isabella Taylor", "James Thomas", "Charlotte Jackson",
-      "Benjamin White", "Amelia Harris", "Elijah Martin", "Mia Thompson",
-      "Lucas Garcia", "Harper Martinez", "Henry Robinson", "Evelyn Clark",
-      "Alexander Lewis", "Abigail Lee", "Sebastian Walker", "Emily Hall",
-      "Jack Allen", "Elizabeth Young", "Daniel Hernandez", "Sofia King",
-    ],
-  },
-  {
-    id: 2,
-    label: "Class 2 (Grade 10) - 24 students",
-    students: [
-      "Sophia Chen", "Noah Jackson", "Ava Thompson", "Oliver Martinez",
-      "Emma Davis", "Liam Wilson", "Isabella Moore", "Lucas Taylor",
-      "Mia Anderson", "Ethan Thomas", "Charlotte White", "James Harris",
-      "Amelia Martin", "Benjamin Clark", "Harper Lewis", "Alexander Lee",
-      "Evelyn Walker", "Henry Hall", "Abigail Allen", "Sebastian Young",
-      "Emily Hernandez", "Jack King", "Elizabeth Scott", "Daniel Green",
-    ],
-  },
-];
-const MARKING_SCHEMES = ["Algebra Standard Rubric", "Geometry Marking Guide", "General Math Quiz Scheme"];
-const ASSIGNMENT_TITLES = [
-  "Algebra Worksheet - Chapter 5",
-  "Geometry Problems Set A",
-  "Fractions Quiz",
-  "Linear Equations Test",
-  "Trigonometry Assignment",
-];
+import CustomSelect from "../../components/common/CustomSelect/CustomSelect";
+import Field from "../../components/common/Field/Field";
+import { CLASSES_DATA, MARKING_SCHEMES, ASSIGNMENT_TITLES } from "../../data/uploadConstants";
 const TEMPLATES = [
   { emoji: "📊", name: "Algebra Worksheet", questions: 15, time: "3-5 min" },
-  { emoji: "📐", name: "Geometry Quiz",      questions: 10, time: "2-3 min" },
-  { emoji: "📝", name: "Word Problems",      questions: 8,  time: "4-6 min" },
-  { emoji: "🧠", name: "Mental Math",        questions: 20, time: "2-3 min" },
+  { emoji: "📐", name: "Geometry Quiz", questions: 10, time: "2-3 min" },
+  { emoji: "📝", name: "Word Problems", questions: 8, time: "4-6 min" },
+  { emoji: "🧠", name: "Mental Math", questions: 20, time: "2-3 min" },
 ];
 const FEATURES = [
-  { icon: Zap,      bg: "bg-blue-100",   color: "text-blue-600",   label: "Smart Detection",   desc: "AI analyzes document structure and question types" },
-  { icon: FileText, bg: "bg-green-100",  color: "text-green-600",  label: "Auto Organization", desc: "Assignments sorted by type and difficulty level"   },
-  { icon: Check,    bg: "bg-purple-100", color: "text-purple-600", label: "Ready to Grade",    desc: "Optimized for fastest grading experience"          },
+  { icon: Zap, bg: "bg-blue-100", color: "text-blue-600", label: "Smart Detection", desc: "AI analyzes document structure and question types" },
+  { icon: FileText, bg: "bg-green-100", color: "text-green-600", label: "Auto Organization", desc: "Assignments sorted by type and difficulty level" },
+  { icon: Check, bg: "bg-purple-100", color: "text-purple-600", label: "Ready to Grade", desc: "Optimized for fastest grading experience" },
 ];
-const CustomSelect = ({ value, onChange, options, placeholder, disabled }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <button type="button" disabled={disabled}
-        onClick={() => setOpen((p) => !p)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className="flex w-full items-center justify-between gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <span className={value ? "text-gray-900 truncate" : "text-gray-400"}>{value || placeholder}</span>
-        <ChevronDown className="w-4 h-4 opacity-50 shrink-0" />
-      </button>
-      {open && (
-        <div className="absolute z-50 top-10 left-0 w-full bg-white border border-gray-100 rounded-md shadow-md overflow-hidden max-h-48 overflow-y-auto">
-          {options.map((opt) => (
-            <button key={opt} type="button"
-              onMouseDown={() => { onChange(opt); setOpen(false); }}
-              className={`flex w-full px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors ${value === opt ? "bg-gray-50 font-medium" : ""}`}
-            >{opt}</button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
-const Field = ({ label, children }) => (
-  <div>
-    <label className="flex items-center gap-2 text-sm font-medium leading-none mb-1 select-none">{label}</label>
-    {children}
-  </div>
-);
 
 const StudentRow = ({ name, fileState, onFileSelect, onRemove }) => {
   const inputRef = useRef(null);
@@ -96,7 +32,7 @@ const StudentRow = ({ name, fileState, onFileSelect, onRemove }) => {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm sm:text-base truncate">{name}</span>
-          {status === "complete"  && <CircleCheck className="w-4 h-4 text-green-500 shrink-0" />}
+          {status === "complete" && <CircleCheck className="w-4 h-4 text-green-500 shrink-0" />}
           {status === "uploading" && <Loader className="w-4 h-4 text-blue-500 shrink-0 animate-spin" />}
         </div>
         {file && (
@@ -152,18 +88,18 @@ const StudentRow = ({ name, fileState, onFileSelect, onRemove }) => {
 };
 
 const BatchUploadPanel = ({ onExit }) => {
-  const [selectedClass,    setSelectedClass]    = useState("");
-  const [markingScheme,    setMarkingScheme]    = useState("");
-  const [assignmentTitle,  setAssignmentTitle]  = useState("");
-  const [totalPoints,      setTotalPoints]      = useState("");
-  const [studentFiles,     setStudentFiles]     = useState({});
-  const [isUploading,      setIsUploading]      = useState(false);
+  const [selectedClass, setSelectedClass] = useState("");
+  const [markingScheme, setMarkingScheme] = useState("");
+  const [assignmentTitle, setAssignmentTitle] = useState("");
+  const [totalPoints, setTotalPoints] = useState("");
+  const [studentFiles, setStudentFiles] = useState({});
+  const [isUploading, setIsUploading] = useState(false);
 
-  const classData     = CLASSES_DATA.find((c) => c.label === selectedClass);
-  const students      = classData?.students ?? [];
+  const classData = CLASSES_DATA.find((c) => c.label === selectedClass);
+  const students = classData?.students ?? [];
   const uploadedCount = Object.values(studentFiles).filter((s) => s.status === "complete").length;
-  const pendingCount  = Object.values(studentFiles).filter((s) => s.status === "pending").length;
-  const allDone       = students.length > 0 && uploadedCount === students.length;
+  const pendingCount = Object.values(studentFiles).filter((s) => s.status === "pending").length;
+  const allDone = students.length > 0 && uploadedCount === students.length;
 
   const handleFileSelect = (name, file) =>
     setStudentFiles((prev) => ({ ...prev, [name]: { file, status: "pending" } }));
@@ -182,21 +118,23 @@ const BatchUploadPanel = ({ onExit }) => {
         setStudentFiles((prev) => ({ ...prev, [name]: { ...prev[name], progress: p } }));
       }
       setStudentFiles((prev) => ({ ...prev, [name]: { ...prev[name], status: "complete", progress: 100 } }));
+
     }
     setIsUploading(false);
   };
 
   return (
     <div className="flex flex-col gap-6 rounded-xl border border-gray-200 bg-white shadow-lg p-4 md:p-8">
-      <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-200 gap-3">
         <div>
           <h4 className="font-medium text-lg">Batch Upload Mode</h4>
           <p className="text-sm text-gray-600">Upload assignments for multiple students at once</p>
         </div>
         <button type="button" onClick={onExit}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition-colors min-h-[44px]"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition-colors min-h-[44px] w-full sm:w-auto shrink-0"
         >
-          <X className="w-4 h-4" /> Exit Batch Mode
+          <X className="w-4 h-4" />
+          Exit Batch Mode
         </button>
       </div>
 
@@ -205,11 +143,11 @@ const BatchUploadPanel = ({ onExit }) => {
           <CustomSelect value={selectedClass} onChange={setSelectedClass} options={CLASSES_DATA.map((c) => c.label)} placeholder="Select class..." />
         </Field>
         <Field label="Marking Scheme">
-          <div className="flex gap-2">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 min-w-0">
               <CustomSelect value={markingScheme} onChange={setMarkingScheme} options={MARKING_SCHEMES} placeholder="Select marking scheme..." />
             </div>
-            <button type="button" className="inline-flex items-center px-3 h-9 text-sm font-medium text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50 transition-colors whitespace-nowrap">
+            <button type="button" className="inline-flex items-center justify-center px-3 h-9 text-sm font-medium text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50 transition-colors whitespace-nowrap w-full sm:w-auto shrink-0">
               <FileUp className="w-4 h-4 mr-1" /> Upload New
             </button>
           </div>
@@ -246,7 +184,7 @@ const BatchUploadPanel = ({ onExit }) => {
             <p className="text-gray-600">Please select a class to see the student list</p>
           </div>
         ) : (
-          <div className="relative h-[400px] pr-1 overflow-y-auto space-y-3">
+          <div className="relative max-h-[400px] pr-1 overflow-y-auto space-y-3">
             {students.map((name) => (
               <StudentRow
                 key={name}
@@ -290,11 +228,11 @@ const SingleUploadForm = ({ onBatchClick }) => {
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-lg p-4 md:p-8 flex flex-col gap-6">
-     
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h3 className="text-2xl font-bold">Student Assignments Upload Zone</h3>
         <button type="button" onClick={onBatchClick}
-          className="inline-flex items-center justify-center gap-2 px-4 h-9 rounded-md text-sm font-medium text-white bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all whitespace-nowrap">
+          className="inline-flex items-center justify-center gap-2 px-4 h-9 rounded-md text-sm font-medium text-white bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all whitespace-nowrap w-full sm:w-auto">
           <Users className="w-4 h-4" /> Batch Upload
         </button>
       </div>
@@ -304,11 +242,11 @@ const SingleUploadForm = ({ onBatchClick }) => {
           <CustomSelect value={form.studentClass} onChange={(v) => set("studentClass", v)} options={CLASSES_DATA.map((c) => c.label)} placeholder="Select class..." />
         </Field>
         <Field label="Marking Scheme">
-          <div className="flex gap-2">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 min-w-0">
               <CustomSelect value={form.markingScheme} onChange={(v) => set("markingScheme", v)} options={MARKING_SCHEMES} placeholder="Select marking scheme..." />
             </div>
-            <button type="button" className="inline-flex items-center px-3 h-9 text-sm font-medium text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50 transition-colors whitespace-nowrap">
+            <button type="button" className="inline-flex items-center justify-center px-3 h-9 text-sm font-medium text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50 transition-colors whitespace-nowrap w-full sm:w-auto shrink-0">
               <FileUp className="w-4 h-4 mr-1" /> Upload New
             </button>
           </div>

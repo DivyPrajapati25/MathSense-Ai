@@ -5,14 +5,14 @@ const DropdownMenu = ({ onClose }) => (
   <div className="absolute right-0 top-8 z-50 min-w-[160px] bg-white rounded-md border border-gray-100 shadow-md p-1">
     <button
       onClick={onClose}
-      className="flex items-center w-full px-2 py-1.5 text-sm text-gray-700 rounded-sm hover:bg-gray-100 cursor-default select-none outline-none"
+      className="flex items-center w-full px-2 py-1.5 text-sm text-gray-700 rounded-sm hover:bg-gray-100 cursor-pointer select-none outline-none"
     >
       <Pen className="w-4 h-4 mr-2" />
       Rename Class
     </button>
     <button
       onClick={onClose}
-      className="flex items-center w-full px-2 py-1.5 text-sm text-gray-700 rounded-sm hover:bg-gray-100 cursor-default select-none outline-none"
+      className="flex items-center w-full px-2 py-1.5 text-sm text-gray-700 rounded-sm hover:bg-gray-100 cursor-pointer select-none outline-none"
     >
       <GraduationCap className="w-4 h-4 mr-2" />
       Edit Grade Level
@@ -37,15 +37,15 @@ const ClassCard = ({ name, grade, studentCount, color = "blue" }) => {
   const colorMap = {
     blue: {
       border: "border-blue-200",
-      bg:     "bg-blue-50/50",
+      bg: "bg-blue-50/50",
       iconBg: "bg-blue-100",
-      icon:   "text-blue-600",
+      icon: "text-blue-600",
     },
     green: {
       border: "border-green-200",
-      bg:     "bg-green-50/50",
+      bg: "bg-green-50/50",
       iconBg: "bg-green-100",
-      icon:   "text-green-600",
+      icon: "text-green-600",
     },
   };
 

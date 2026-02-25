@@ -3,14 +3,14 @@ import { TrendingUp } from "lucide-react";
 import { cardVariants, staggerContainer } from "../../utils/animations";
 
 const STATS = [
-  { id: "sent",      value: "127",    label: "Feedback Sent",        color: "text-blue-600",   bar: false },
-  { id: "opened",    value: "112",    label: "Opened by Students",   color: "text-green-600",  bar: true, barValue: 112, barMax: 127 },
-  { id: "parent",    value: "23",     label: "Parent Responses",     color: "text-purple-600", bar: false },
-  { id: "followup",  value: "8",      label: "Follow-up Questions",  color: "text-orange-500", bar: false },
-  { id: "viewtime",  value: "3.5 min",label: "Avg. View Time",       color: "text-pink-600",   bar: false },
+  { id: "sent", value: "127", label: "Feedback Sent", color: "text-blue-600", bar: false },
+  { id: "opened", value: "112", label: "Opened by Students", color: "text-green-600", bar: true, barValue: 112, barMax: 127 },
+  { id: "parent", value: "23", label: "Parent Responses", color: "text-purple-600", bar: false },
+  { id: "followup", value: "8", label: "Follow-up Questions", color: "text-orange-500", bar: false },
+  { id: "viewtime", value: "3.5 min", label: "Avg. View Time", color: "text-pink-600", bar: false },
 ];
 
-const FeedbackOverview= () => (
+const FeedbackOverview = () => (
   <section className="mb-10">
     <motion.div
       variants={cardVariants}
@@ -24,7 +24,7 @@ const FeedbackOverview= () => (
       </h2>
 
       <motion.div
-        className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6"
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 md:gap-6"
         variants={staggerContainer}
         initial="hidden"
         animate="visible"

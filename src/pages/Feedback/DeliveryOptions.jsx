@@ -43,7 +43,7 @@ const Toggle = ({ checked, onChange }) => (
     role="switch"
     aria-checked={checked}
     onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-5 w-9 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+    className={`relative inline-flex h-5 w-9 items-center rounded-full border-2 border-transparent transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
       ${checked ? "bg-black" : "bg-gray-300"}`}
   >
     <span
@@ -92,7 +92,6 @@ const DeliveryOptions = () => {
           );
         })}
       </div>
-]
       <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-gray-200 gap-3">
         <div className="text-sm text-gray-600">{selectedCount} delivery methods selected</div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">

@@ -5,8 +5,8 @@ import { sectionVariants, dropdownVariants } from "../../utils/animations";
 
 const CLASS_OPTIONS = [
   { label: "All Classes", value: "all" },
-  { label: "Class 1",     value: "class1" },
-  { label: "Class 2",     value: "class2" },
+  { label: "Class 1", value: "class1" },
+  { label: "Class 2", value: "class2" },
 ];
 
 const InsightsHero = ({ period, onPeriodChange, selectedClass, onClassChange }) => {
@@ -78,12 +78,11 @@ const InsightsHero = ({ period, onPeriodChange, selectedClass, onClassChange }) 
                           onClassChange(cls.value);
                           setFilterOpen(false);
                         }}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-gray-100 transition-colors cursor-default"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-gray-100 transition-colors cursor-pointer"
                       >
                         <CircleCheckBig
-                          className={`w-4 h-4 mr-2 shrink-0 ${
-                            isSelected ? "text-blue-600" : "text-transparent"
-                          }`}
+                          className={`w-4 h-4 mr-2 shrink-0 ${isSelected ? "text-blue-600" : "text-transparent"
+                            }`}
                         />
                         {cls.label}
                       </button>
@@ -99,11 +98,10 @@ const InsightsHero = ({ period, onPeriodChange, selectedClass, onClassChange }) 
               <button
                 key={p}
                 onClick={() => onPeriodChange(p)}
-                className={`inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-8 rounded-md gap-1.5 px-3 transition-all ${
-                  period === p
+                className={`inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-8 rounded-md gap-1.5 px-3 transition-all ${period === p
                     ? "bg-blue-600 text-white shadow-md"
                     : "hover:bg-gray-100 text-gray-700"
-                }`}
+                  }`}
               >
                 <Calendar className="w-4 h-4 mr-1" />
                 {p}
@@ -129,8 +127,8 @@ const InsightsHero = ({ period, onPeriodChange, selectedClass, onClassChange }) 
           {selectedClass === "all"
             ? "All Classes"
             : selectedClass === "class1"
-            ? "Class 1 (Grade 9)"
-            : "Class 2 (Grade 10)"}
+              ? "Class 1 (Grade 9)"
+              : "Class 2 (Grade 10)"}
         </span>
         <span className="inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 border-transparent">
           Period: This {period}

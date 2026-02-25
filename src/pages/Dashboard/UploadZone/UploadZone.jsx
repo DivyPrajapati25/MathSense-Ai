@@ -1,97 +1,13 @@
 import { useState, useRef } from "react";
 import {
-  Users, Upload, ChevronDown, X, CircleCheck,
+  Users, Upload, X, CircleCheck,
   Loader, File
 } from "lucide-react";
+import CustomSelect from "../../../components/common/CustomSelect/CustomSelect";
+import Field from "../../../components/common/Field/Field";
+import { CLASSES_DATA, MARKING_SCHEMES, ASSIGNMENT_TITLES } from "../../../data/uploadConstants";
 
-const ASSIGNMENT_TITLES = [
-  "Algebra Worksheet - Chapter 5",
-  "Geometry Problems Set A",
-  "Fractions Quiz",
-  "Linear Equations Test",
-  "Trigonometry Assignment",
-];
 
-const CLASSES_DATA = [
-  {
-    id: 1,
-    label: "Class 1 (Grade 9) - 28 students",
-    students: [
-      "Emma Johnson", "Marcus Williams", "Liam Anderson", "Sophia Martinez",
-      "Noah Brown", "Olivia Davis", "Ethan Miller", "Ava Wilson",
-      "Mason Moore", "Isabella Taylor", "James Thomas", "Charlotte Jackson",
-      "Benjamin White", "Amelia Harris", "Elijah Martin", "Mia Thompson",
-      "Lucas Garcia", "Harper Martinez", "Henry Robinson", "Evelyn Clark",
-      "Alexander Lewis", "Abigail Lee", "Sebastian Walker", "Emily Hall",
-      "Jack Allen", "Elizabeth Young", "Daniel Hernandez", "Sofia King",
-    ],
-  },
-  {
-    id: 2,
-    label: "Class 2 (Grade 10) - 24 students",
-    students: [
-      "Sophia Chen", "Noah Jackson", "Ava Thompson", "Oliver Martinez",
-      "Emma Davis", "Liam Wilson", "Isabella Moore", "Lucas Taylor",
-      "Mia Anderson", "Ethan Thomas", "Charlotte White", "James Harris",
-      "Amelia Martin", "Benjamin Clark", "Harper Lewis", "Alexander Lee",
-      "Evelyn Walker", "Henry Hall", "Abigail Allen", "Sebastian Young",
-      "Emily Hernandez", "Jack King", "Elizabeth Scott", "Daniel Green",
-    ],
-  },
-];
-
-const MARKING_SCHEMES = ["Algebra Stadard Rubric", "Geometry Marking Guide", "General Math Quiz Scheme"];
-
-const CustomSelect = ({ value, onChange, options, placeholder, disabled }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setOpen((p) => !p)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className={`
-          flex w-full items-center justify-between gap-2
-          rounded-md border border-gray-200 bg-gray-50
-          px-3 py-2 text-sm whitespace-nowrap transition-colors h-9
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
-          disabled:opacity-50 disabled:cursor-not-allowed
-        `}
-      >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>
-          {value || placeholder}
-        </span>
-        <ChevronDown className="w-4 h-4 opacity-50 shrink-0" />
-      </button>
-      {open && (
-        <div className="absolute z-50 top-10 left-0 w-full bg-white border border-gray-100 rounded-md shadow-md overflow-hidden max-h-48 overflow-y-auto">
-          {options.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onMouseDown={() => { onChange(opt); setOpen(false); }}
-              className={`flex w-full px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors ${value === opt ? "bg-gray-50 font-medium" : ""}`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const Field = ({ label, children }) => (
-  <div>
-    <label className="flex items-center gap-2 text-sm font-medium leading-none mb-1 select-none">
-      {label}
-    </label>
-    {children}
-  </div>
-);
 
 const StudentRow = ({ name, fileState, onFileSelect, onRemove }) => {
   const inputRef = useRef(null);
@@ -244,7 +160,7 @@ const BatchUploadPanel = ({ onExit }) => {
 
   return (
     <div className="flex flex-col gap-6 rounded-xl border border-gray-200 bg-white shadow-lg p-6">
-      <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-200 gap-3">
         <div>
           <h4 className="font-medium text-lg">Batch Upload Mode</h4>
           <p className="text-sm text-gray-600">Upload assignments for multiple students at once</p>
@@ -252,7 +168,7 @@ const BatchUploadPanel = ({ onExit }) => {
         <button
           type="button"
           onClick={onExit}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition-colors min-h-[44px]"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition-colors min-h-[44px] w-full sm:w-auto shrink-0"
         >
           <X className="w-4 h-4" />
           Exit Batch Mode
@@ -270,8 +186,8 @@ const BatchUploadPanel = ({ onExit }) => {
         </Field>
         <div>
           <Field label="Marking Scheme">
-            <div className="flex gap-2">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1 min-w-0">
                 <CustomSelect
                   value={markingScheme}
                   onChange={setMarkingScheme}
@@ -281,7 +197,7 @@ const BatchUploadPanel = ({ onExit }) => {
               </div>
               <button
                 type="button"
-                className="inline-flex items-center px-3 h-9 text-sm font-medium text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50 transition-colors whitespace-nowrap"
+                className="inline-flex items-center justify-center px-3 h-9 text-sm font-medium text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50 transition-colors whitespace-nowrap w-full sm:w-auto shrink-0"
               >
                 Upload New
               </button>
@@ -330,7 +246,7 @@ const BatchUploadPanel = ({ onExit }) => {
           </div>
         ) : (
 
-          <div className="relative h-[400px] pr-1 overflow-y-auto space-y-3">
+          <div className="relative max-h-[400px] pr-1 overflow-y-auto space-y-3">
             {students.map((name) => (
               <StudentRow
                 key={name}
@@ -436,7 +352,7 @@ const UploadZone = () => {
   return (
     <section>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h2 className="text-3xl font-bold text-gray-900">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
           Student Assignments Upload Zone
         </h2>
         {!batchMode && (

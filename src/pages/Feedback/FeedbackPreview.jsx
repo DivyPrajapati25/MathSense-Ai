@@ -13,14 +13,14 @@ const FeedbackPreview = () => {
       animate="visible"
       className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col gap-6"
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
         <h3 className="text-xl font-bold">Feedback Preview</h3>
-        <div className="bg-gray-100 rounded-xl p-1 grid grid-cols-2 gap-1 text-sm">
+        <div className="bg-gray-100 rounded-xl p-1 grid grid-cols-2 gap-1 text-sm w-full sm:w-auto">
           {["student", "parent"].map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-all capitalize
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all capitalize whitespace-nowrap
                 ${tab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
             >
               {t === "student" ? "Student View" : "Parent View"}

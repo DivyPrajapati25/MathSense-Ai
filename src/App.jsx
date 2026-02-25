@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/layout/Navbar/Navbar";
 import ErrorBoundary from "./components/common/ErrorBoundary/ErrorBoundary";
 import FloatingBetaBanner from "./components/common/FloatingBetaBanner/FloatingBetaBanner";
+import ScrollToTop from "./components/common/ScrollToTop/ScrollToTop";
 
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
 const UploadPage = lazy(() => import("./pages/Upload/UploadPage"));
@@ -15,7 +16,8 @@ const App = () => {
   return (
     <ErrorBoundary>
       <Router>
-        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50">
+        <ScrollToTop />
+        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-green-50 pb-16">
           <Navbar />
 
           <main className="relative">

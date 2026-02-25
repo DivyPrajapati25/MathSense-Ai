@@ -7,6 +7,7 @@ import {
   staggerContainer,
   cardVariants,
 } from "../../utils/animations";
+import useScrollLock from "../../hooks/useScrollLock";
 
 const STUDENTS = {
   all: [
@@ -133,20 +134,15 @@ const ONLINE_RESOURCES = [
   },
 ];
 
-const useScrollLock = (onClose) => {
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [onClose]);
-};
+
 
 const ViewProfileModal = ({ student, onClose }) => {
-  useScrollLock(onClose);
+  useScrollLock();
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
   const needsHelpText = student.needsHelp.length > 0 ? student.needsHelp.join(", ") : "various topics";
 
   return (
@@ -203,7 +199,12 @@ const ViewProfileModal = ({ student, onClose }) => {
 };
 
 const TakeActionModal = ({ student, onClose }) => {
-  useScrollLock(onClose);
+  useScrollLock();
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
   const defaultMsg = `Schedule 1-on-1 session with ${student.name}`;
   const [message, setMessage] = useState(defaultMsg);
 
@@ -229,11 +230,11 @@ const TakeActionModal = ({ student, onClose }) => {
                 Send Message
               </h4>
               <div className="space-y-3">
-              
+
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm font-medium text-blue-900">{defaultMsg}</p>
                 </div>
-               
+
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium leading-none mb-2 select-none">
                     Additional Message (Optional)
@@ -246,7 +247,7 @@ const TakeActionModal = ({ student, onClose }) => {
                     className="resize-none w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors mt-1"
                   />
                 </div>
-        
+
                 <button className="w-full inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">
                   <Send className="w-4 h-4" />
                   Send Message
@@ -267,7 +268,7 @@ const TakeActionModal = ({ student, onClose }) => {
                   <li>• Online resource links (Khan Academy, IXL, etc.)</li>
                   <li>• Personalized learning path and timeline</li>
                 </ul>
-           
+
                 <div className="flex flex-col sm:flex-row gap-3 mt-2">
                   <button className="flex-1 inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium border border-gray-200 bg-white hover:bg-gray-50 transition-colors">
                     <FileDown className="w-4 h-4" />
@@ -377,7 +378,7 @@ const StudentCard = ({ student, onViewProfile, onIntervene }) => (
 );
 
 const StudentRiskAssessment = ({ selectedClass = "all" }) => {
-  const [profileStudent, setProfileStudent]   = useState(null);
+  const [profileStudent, setProfileStudent] = useState(null);
   const [interveneStudent, setInterveneStudent] = useState(null);
   const students = STUDENTS[selectedClass] ?? STUDENTS.all;
 

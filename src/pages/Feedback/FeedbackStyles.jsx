@@ -105,7 +105,7 @@ const FeedbackStyles = ({ onStyleChange }) => {
         })}
       </motion.div>
 
-      <button className="inline-flex items-center justify-center gap-2 w-full h-9 px-4 rounded-md text-sm font-medium border border-gray-200 bg-white hover:bg-gray-50 transition-colors mt-2">
+      <button className="inline-flex items-center justify-center gap-2 w-full h-9 px-4 rounded-md text-sm font-medium border border-gray-200 bg-white hover:bg-gray-50 transition-colors mt-2 cursor-pointer">
         <Settings className="w-4 h-4 mr-1" />
         Customize Template
       </button>

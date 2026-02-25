@@ -24,7 +24,7 @@ const NavItem = ({ item, isActive, onClick }) => {
         relative inline-flex items-center justify-center whitespace-nowrap
         text-sm font-medium h-8 rounded-md gap-1.5 px-4 py-2
         outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
-        transition-colors duration-150
+        transition-colors duration-150 cursor-pointer
         ${isActive ? "text-white hover:bg-black" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
       `}
     >
