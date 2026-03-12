@@ -117,7 +117,6 @@ const TopicPerformance = ({ selectedClass = "all", period = "Month" }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-12">
-      {/* Topic Performance */}
       <motion.div variants={cardVariants} initial="hidden" animate="visible"
         className="bg-white rounded-xl p-6 flex flex-col gap-6 border border-gray-200">
         <h3 className="text-xl font-bold mb-6">Topic Performance</h3>

@@ -1,0 +1,426 @@
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ShieldCheck, AlertCircle, RotateCcw, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api";
+import * as yup from "yup";
+
+const OTP_LENGTH = 6;
+const RESEND_COUNTDOWN = 60;
+
+const passwordSchema = yup.object().shape({
+    new_password: yup
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .required("New password is required"),
+    confirmPassword: yup
+        .string()
+        .oneOf([yup.ref("new_password")], "Passwords must match")
+        .required("Please confirm your password"),
+});
+
+const OtpVerificationPage = () => {
+    const { verifyOtp } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const email = location.state?.email || "";
+    const isPasswordReset = location.state?.isPasswordReset || false;
+
+    const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
+    const [apiError, setApiError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isResending, setIsResending] = useState(false);
+    const [resendSuccess, setResendSuccess] = useState(false);
+    const [resetSuccess, setResetSuccess] = useState(false);
+    const [countdown, setCountdown] = useState(RESEND_COUNTDOWN);
+    const [canResend, setCanResend] = useState(false);
+
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordErrors, setPasswordErrors] = useState({});
+
+    const inputRefs = useRef([]);
+
+    useEffect(() => {
+        if (!email) {
+            navigate(isPasswordReset ? "/forgot-password" : "/signup", { replace: true });
+        }
+    }, [email, navigate, isPasswordReset]);
+
+    useEffect(() => {
+        if (countdown <= 0) {
+            setCanResend(true);
+            return;
+        }
+        const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [countdown]);
+
+    useEffect(() => {
+        inputRefs.current[0]?.focus();
+    }, []);
+
+    const handleChange = (index, value) => {
+        if (!/^\d*$/.test(value)) return;
+
+        const newOtp = [...otp];
+        newOtp[index] = value.slice(-1);
+        setOtp(newOtp);
+        setApiError("");
+
+        if (value && index < OTP_LENGTH - 1) {
+            inputRefs.current[index + 1]?.focus();
+        }
+    };
+
+    const handleKeyDown = (index, e) => {
+        if (e.key === "Backspace" && !otp[index] && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        }
+    };
+
+    const handlePaste = (e) => {
+        e.preventDefault();
+        const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+        if (!pasted) return;
+
+        const newOtp = Array(OTP_LENGTH).fill("");
+        pasted.split("").forEach((char, i) => {
+            newOtp[i] = char;
+        });
+        setOtp(newOtp);
+        inputRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setApiError("");
+        setPasswordErrors({});
+
+        const otpString = otp.join("");
+        if (otpString.length < OTP_LENGTH) {
+            setApiError("Please enter the complete 6-digit OTP.");
+            return;
+        }
+
+        if (isPasswordReset) {
+            try {
+                await passwordSchema.validate(
+                    { new_password: newPassword, confirmPassword },
+                    { abortEarly: false }
+                );
+            } catch (validationError) {
+                const fieldErrors = {};
+                validationError.inner.forEach((err) => {
+                    if (!fieldErrors[err.path]) fieldErrors[err.path] = err.message;
+                });
+                setPasswordErrors(fieldErrors);
+                return;
+            }
+        }
+
+        setIsSubmitting(true);
+        try {
+            if (isPasswordReset) {
+                await api.post("/auth/verify-otp/", {
+                    otp_code: otpString,
+                    email,
+                    new_password: newPassword,
+                });
+                setResetSuccess(true);
+                setTimeout(() => {
+                    navigate("/login", { state: { passwordReset: true }, replace: true });
+                }, 2000);
+            } else {
+                await verifyOtp(otpString, email);
+            }
+        } catch (err) {
+            const data = err.response?.data;
+            const detail = data?.detail;
+            const message = data?.message || data?.error;
+
+            if (typeof detail === "string") {
+                setApiError(detail);
+            } else if (Array.isArray(detail)) {
+                setApiError(detail.map((d) => d.msg || d.message || d).join(", "));
+            } else if (message) {
+                setApiError(message);
+            } else {
+                setApiError(err.message || "OTP verification failed. Please try again.");
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleResend = async () => {
+        if (!canResend || isResending) return;
+
+        setIsResending(true);
+        setApiError("");
+        setResendSuccess(false);
+
+        try {
+            if (isPasswordReset) {
+                await api.post("/auth/forgot-password/", { email });
+            } else {
+                await api.post("/auth/resend-otp/", { email });
+            }
+
+            setResendSuccess(true);
+            setCanResend(false);
+            setCountdown(RESEND_COUNTDOWN);
+            setOtp(Array(OTP_LENGTH).fill(""));
+            inputRefs.current[0]?.focus();
+        } catch (err) {
+            const data = err.response?.data;
+            const detail = data?.detail;
+            const message = data?.message || data?.error;
+
+            if (typeof detail === "string") {
+                setApiError(detail);
+            } else if (message) {
+                setApiError(message);
+            } else {
+                setApiError("Failed to resend OTP. Please try again.");
+            }
+        } finally {
+            setIsResending(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-white to-green-50 px-4 py-12">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="w-full max-w-md"
+            >
+                <div className="text-center mb-8">
+                    <motion.div
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                        className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-linear-to-br from-blue-600 to-green-500 shadow-lg mb-4"
+                    >
+                        <ShieldCheck className="w-8 h-8 text-white" />
+                    </motion.div>
+
+                    <h1 className="text-3xl font-bold text-gray-900">
+                        {isPasswordReset ? "Reset Password" : "Verify Your Email"}
+                    </h1>
+                    <p className="text-gray-500 mt-2">
+                        {isPasswordReset
+                            ? "Enter the OTP sent to your email and set a new password"
+                            : "We sent a 6-digit code to"}
+                    </p>
+                    <div className="inline-flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-blue-50 border border-blue-100">
+                        <Mail className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="text-sm font-semibold text-blue-700">{email}</span>
+                    </div>
+                </div>
+
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100 p-8">
+
+                    {apiError && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-start gap-3 p-4 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm"
+                        >
+                            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                            <span>{apiError}</span>
+                        </motion.div>
+                    )}
+
+                    {resendSuccess && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-start gap-3 p-4 mb-6 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm"
+                        >
+                            <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
+                            <span>OTP resent successfully! Please check your email.</span>
+                        </motion.div>
+                    )}
+
+                    {resetSuccess && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-start gap-3 p-4 mb-6 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm"
+                        >
+                            <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
+                            <span>Password reset successfully! Redirecting to login...</span>
+                        </motion.div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                                Enter verification code
+                            </label>
+                            <div className="flex justify-center gap-3" onPaste={handlePaste}>
+                                {otp.map((digit, index) => (
+                                    <motion.input
+                                        key={index}
+                                        ref={(el) => (inputRefs.current[index] = el)}
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={1}
+                                        value={digit}
+                                        onChange={(e) => handleChange(index, e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(index, e)}
+                                        autoComplete="off"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.1 + index * 0.05 }}
+                                        className={`w-11 h-13 text-center text-lg font-bold rounded-xl border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                                            ${digit
+                                                ? "border-blue-500 bg-blue-50 text-blue-700"
+                                                : "border-gray-200 bg-gray-50/50 text-gray-900"
+                                            }
+                                            ${apiError ? "border-red-300 bg-red-50/40" : ""}
+                                            hover:border-gray-300 focus:border-blue-500`}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        {isPasswordReset && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="space-y-4"
+                            >
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        New Password *
+                                    </label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                        <input
+                                            type={showNewPassword ? "text" : "password"}
+                                            value={newPassword}
+                                            onChange={(e) => {
+                                                setNewPassword(e.target.value);
+                                                setPasswordErrors((p) => ({ ...p, new_password: "" }));
+                                            }}
+                                            placeholder="Min. 8 characters"
+                                            autoComplete="new-password"
+                                            className={`w-full pl-11 pr-12 py-3 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${passwordErrors.new_password
+                                                    ? "border-red-300 bg-red-50/40"
+                                                    : "border-gray-200 bg-gray-50/50 hover:border-gray-300"
+                                                }`}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNewPassword((p) => !p)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                                            tabIndex={-1}
+                                        >
+                                            {showNewPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                    {passwordErrors.new_password && (
+                                        <p className="mt-1.5 text-xs text-red-600">{passwordErrors.new_password}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Confirm Password *
+                                    </label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            value={confirmPassword}
+                                            onChange={(e) => {
+                                                setConfirmPassword(e.target.value);
+                                                setPasswordErrors((p) => ({ ...p, confirmPassword: "" }));
+                                            }}
+                                            placeholder="Re-enter new password"
+                                            autoComplete="new-password"
+                                            className={`w-full pl-11 pr-12 py-3 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${passwordErrors.confirmPassword
+                                                    ? "border-red-300 bg-red-50/40"
+                                                    : "border-gray-200 bg-gray-50/50 hover:border-gray-300"
+                                                }`}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword((p) => !p)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                                            tabIndex={-1}
+                                        >
+                                            {showConfirmPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                    {passwordErrors.confirmPassword && (
+                                        <p className="mt-1.5 text-xs text-red-600">{passwordErrors.confirmPassword}</p>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={isSubmitting || otp.join("").length < OTP_LENGTH}
+                            className="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-linear-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting ? (
+                                <span className="inline-flex items-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    {isPasswordReset ? "Resetting Password…" : "Verifying…"}
+                                </span>
+                            ) : (
+                                isPasswordReset ? "Reset Password" : "Verify Email"
+                            )}
+                        </button>
+
+                        <div className="text-center">
+                            <p className="text-sm text-gray-500">
+                                Didn't receive the code?{" "}
+                                {canResend ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleResend}
+                                        disabled={isResending}
+                                        className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-60"
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" />
+                                        {isResending ? "Resending…" : "Resend OTP"}
+                                    </button>
+                                ) : (
+                                    <span className="font-semibold text-gray-400">
+                                        Resend in {countdown}s
+                                    </span>
+                                )}
+                            </p>
+                        </div>
+                    </form>
+                </div>
+
+                <p className="text-center text-sm text-gray-500 mt-4">
+                    {isPasswordReset ? "Remember your password? " : "Wrong email? "}
+                    <button
+                        type="button"
+                        onClick={() => navigate(isPasswordReset ? "/login" : "/signup")}
+                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                        {isPasswordReset ? "Back to Login" : "Go back to Signup"}
+                    </button>
+                </p>
+            </motion.div>
+        </div>
+    );
+};
+
+export default OtpVerificationPage;

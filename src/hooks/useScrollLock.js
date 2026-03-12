@@ -1,9 +1,5 @@
 import { useEffect } from "react";
 
-/**
- * Locks body scroll when a modal/overlay is open.
- * Preserves the current scroll position and restores it on unmount.
- */
 const useScrollLock = () => {
     useEffect(() => {
         const scrollY = window.scrollY;

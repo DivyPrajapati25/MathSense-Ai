@@ -3,16 +3,21 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain, Upload, CircleCheckBig, BarChart2,
-  MessageSquare, Menu, X,
+  MessageSquare, Menu, X, LogOut, User,
 } from "lucide-react";
 import Logo from "./Logo";
+import { useAuth } from "../../../context/AuthContext";
 
-const NAV_ITEMS = [
-  { label: "Dashboard", icon: Brain,         id: "dashboard", path: "/"         },
-  { label: "Upload",    icon: Upload,         id: "upload",    path: "/upload"   },
-  { label: "Grading",  icon: CircleCheckBig, id: "grading",   path: "/grading"  },
-  { label: "Insights", icon: BarChart2,      id: "insights",  path: "/insights" },
-  { label: "Feedback", icon: MessageSquare,  id: "feedback",  path: "/feedback" },
+const TEACHER_NAV_ITEMS = [
+  { label: "Dashboard", icon: Brain, id: "dashboard", path: "/" },
+  { label: "Upload", icon: Upload, id: "upload", path: "/upload" },
+  { label: "Grading", icon: CircleCheckBig, id: "grading", path: "/grading" },
+  { label: "Insights", icon: BarChart2, id: "insights", path: "/insights" },
+  { label: "Feedback", icon: MessageSquare, id: "feedback", path: "/feedback" },
+];
+
+const STUDENT_NAV_ITEMS = [
+  { label: "Dashboard", icon: Brain, id: "student-dashboard", path: "/student" },
 ];
 
 const NavItem = ({ item, isActive, onClick }) => {
@@ -65,21 +70,21 @@ const JoinBetaButton = ({ full = false }) => (
 );
 
 const mobileMenuVariants = {
-  hidden:  { height: 0, opacity: 0, transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] } },
-  visible: { height: "auto", opacity: 1, transition: { duration: 0.3,  ease: [0.4, 0, 0.2, 1] } },
+  hidden: { height: 0, opacity: 0, transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] } },
+  visible: { height: "auto", opacity: 1, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } },
 };
 
 const mobileItemVariants = {
-  hidden:  { opacity: 0, x: -12 },
+  hidden: { opacity: 0, x: -12 },
   visible: { opacity: 1, x: 0, transition: { duration: 0.2, ease: "easeOut" } },
 };
 
 const mobileContainerVariants = {
-  hidden:  {},
+  hidden: {},
   visible: { transition: { staggerChildren: 0.05, delayChildren: 0.05 } },
 };
 
-const MobileMenu = ({ activePath, onItemClick, onClose }) => (
+const MobileMenu = ({ navItems, activePath, onItemClick, onClose, onLogout, user }) => (
   <motion.div
     className="lg:hidden overflow-hidden border-t border-blue-100 bg-white"
     variants={mobileMenuVariants}
@@ -93,7 +98,23 @@ const MobileMenu = ({ activePath, onItemClick, onClose }) => (
       initial="hidden"
       animate="visible"
     >
-      {NAV_ITEMS.map((item) => {
+      {/* User info */}
+      <motion.div
+        variants={mobileItemVariants}
+        className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-xl bg-blue-50/60 border border-blue-100"
+      >
+        <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-600 to-green-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          {user?.first_name?.[0]?.toUpperCase() || "U"}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">
+            {user?.first_name} {user?.last_name || ""}
+          </p>
+          <p className="text-xs text-gray-500 capitalize">{user?.role?.toLowerCase()}</p>
+        </div>
+      </motion.div>
+
+      {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = activePath === item.path;
         return (
@@ -115,19 +136,29 @@ const MobileMenu = ({ activePath, onItemClick, onClose }) => (
           </motion.button>
         );
       })}
-      <motion.div variants={mobileItemVariants} className="pt-2">
+
+      <motion.div variants={mobileItemVariants} className="pt-2 space-y-2">
         <JoinBetaButton full />
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </button>
       </motion.div>
     </motion.div>
   </motion.div>
 );
 
 const Navbar = () => {
-  const navigate    = useNavigate();
-  const location    = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const activePath = location.pathname;
+  const navItems = user?.role === "STUDENT" ? STUDENT_NAV_ITEMS : TEACHER_NAV_ITEMS;
 
   const handleNavClick = (item) => {
     navigate(item.path);
@@ -138,12 +169,12 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          <div onClick={() => navigate("/")} className="cursor-pointer">
+          <div onClick={() => navigate(user?.role === "STUDENT" ? "/student" : "/")} className="cursor-pointer">
             <Logo />
           </div>
 
           <nav className="hidden lg:flex items-center space-x-1">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <NavItem
                 key={item.id}
                 item={item}
@@ -154,10 +185,32 @@ const Navbar = () => {
           </nav>
 
           <div className="flex items-center space-x-3">
+            {/* User badge - desktop */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200">
+              <div className="w-6 h-6 rounded-full bg-linear-to-br from-blue-600 to-green-500 flex items-center justify-center text-white text-[10px] font-bold">
+                {user?.first_name?.[0]?.toUpperCase() || "U"}
+              </div>
+              <span className="text-sm font-medium text-gray-700 max-w-[100px] truncate">
+                {user?.first_name || "User"}
+              </span>
+            </div>
+
+            {/* Join Beta - desktop */}
             <div className="hidden lg:flex">
               <JoinBetaButton />
             </div>
 
+            {/* Logout - desktop */}
+            <button
+              onClick={logout}
+              className="hidden lg:inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden xl:inline">Logout</span>
+            </button>
+
+            {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen((p) => !p)}
               className="lg:hidden inline-flex items-center justify-center h-[44px] min-w-[44px] rounded-md text-gray-600 hover:bg-gray-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -169,8 +222,8 @@ const Navbar = () => {
                   <motion.span
                     key="close"
                     initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0,   opacity: 1 }}
-                    exit={{    rotate: 90,  opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 90, opacity: 0 }}
                     transition={{ duration: 0.15 }}
                   >
                     <X className="w-5 h-5" />
@@ -178,9 +231,9 @@ const Navbar = () => {
                 ) : (
                   <motion.span
                     key="menu"
-                    initial={{ rotate: 90,  opacity: 0 }}
-                    animate={{ rotate: 0,   opacity: 1 }}
-                    exit={{    rotate: -90, opacity: 0 }}
+                    initial={{ rotate: 90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -90, opacity: 0 }}
                     transition={{ duration: 0.15 }}
                   >
                     <Menu className="w-5 h-5" />
@@ -196,9 +249,12 @@ const Navbar = () => {
       <AnimatePresence>
         {mobileOpen && (
           <MobileMenu
+            navItems={navItems}
             activePath={activePath}
             onItemClick={handleNavClick}
             onClose={() => setMobileOpen(false)}
+            onLogout={logout}
+            user={user}
           />
         )}
       </AnimatePresence>

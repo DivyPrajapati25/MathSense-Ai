@@ -7,8 +7,6 @@ import CustomSelect from "../../../components/common/CustomSelect/CustomSelect";
 import Field from "../../../components/common/Field/Field";
 import { CLASSES_DATA, MARKING_SCHEMES, ASSIGNMENT_TITLES } from "../../../data/uploadConstants";
 
-
-
 const StudentRow = ({ name, fileState, onFileSelect, onRemove }) => {
   const inputRef = useRef(null);
   const { file, status, progress = 0 } = fileState;

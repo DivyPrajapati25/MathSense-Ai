@@ -84,7 +84,6 @@ const PerformanceTrends = ({ period = "Month", selectedClass = "all" }) => {
   );
 
   useEffect(() => {
-    // Reset to zero first (for animation), then fill with real values after a short delay
     const zeroData = rawData.map((d) => ({ label: d.label, value: 0 }));
     setChartData(zeroData);
 
@@ -93,7 +92,6 @@ const PerformanceTrends = ({ period = "Month", selectedClass = "all" }) => {
     }, 80);
 
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView, period, selectedClass, dataKey, rawData]);
 
   useEffect(() => {

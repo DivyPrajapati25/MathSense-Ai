@@ -52,12 +52,6 @@ export const navbarVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
 };
 
-// Nav pill — spring config for the sliding active indicator in Navbar.
-// Used as the `transition` prop on the <motion.span layoutId="nav-pill"> element.
-// A spring gives it the natural "slides through intermediate buttons" feel:
-//   stiffness 380 = snappy but not instant
-//   damping   32  = slight overshoot then settles
-//   mass      0.9 = slightly lighter than default for a floaty finish
 export const navPillTransition = {
   type:      "spring",
   stiffness: 380,
