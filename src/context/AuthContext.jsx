@@ -14,12 +14,11 @@ export const useAuth = () => {
 
 const isValidJwt = (token) => {
     try {
+        if (!token || typeof token !== "string") return false;
         const parts = token.split(".");
         if (parts.length !== 3) return false;
-
         const payload = JSON.parse(atob(parts[1]));
         if (!payload || typeof payload.exp !== "number") return false;
-
         return payload.exp * 1000 > Date.now();
     } catch {
         return false;
@@ -42,7 +41,11 @@ export const AuthProvider = ({ children }) => {
             const savedUser = localStorage.getItem("userData");
 
             if (savedToken && savedUser && isValidJwt(savedToken)) {
-                setUser(JSON.parse(savedUser));
+                try {
+                    setUser(JSON.parse(savedUser));
+                } catch {
+                    clearAuth();
+                }
             } else {
                 clearAuth();
             }
@@ -53,11 +56,11 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    const persistAuth = (accessToken, userData) => {
+    const persistAuth = useCallback((accessToken, userData) => {
         localStorage.setItem("authToken", accessToken);
         localStorage.setItem("userData", JSON.stringify(userData));
         setUser(userData);
-    };
+    }, []);
 
     const signup = async (formData) => {
         const payload = {
@@ -70,16 +73,13 @@ export const AuthProvider = ({ children }) => {
             password: formData.password,
             standard: formData.role === "STUDENT" ? Number(formData.standard) : null,
         };
-
         const response = await api.post("/auth/signup/", payload);
         return response.data;
     };
 
     const login = async (email, password) => {
         const response = await api.post("/auth/login/", { email, password });
-
         const data = response.data.data;
-
         const userData = {
             user_id: data.user_id,
             first_name: data.first_name,
@@ -87,35 +87,29 @@ export const AuthProvider = ({ children }) => {
             role: data.role,
         };
         persistAuth(data.access_token, userData);
-
         if (data.role === "STUDENT") {
             navigate("/student", { replace: true });
         } else {
             navigate("/", { replace: true });
         }
-
         return response.data;
     };
 
     const verifyOtp = async (otp, email) => {
         const response = await api.post("/auth/verify-otp/", { otp_code: otp, email });
         const data = response.data.data;
-
         const userData = {
             user_id: data.user_id,
             first_name: data.first_name,
             email: data.email,
             role: data.role,
         };
-
         persistAuth(data.access_token, userData);
-
         if (data.role === "TEACHER") {
             navigate("/", { replace: true });
         } else {
             navigate("/student", { replace: true });
         }
-
         return response.data;
     };
 

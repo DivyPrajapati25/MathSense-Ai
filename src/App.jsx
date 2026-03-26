@@ -21,6 +21,8 @@ const SignupPage = lazy(() => import("./pages/Auth/SignupPage"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard/StudentDashboard"));
 const OtpVerificationPage = lazy(() => import("./pages/Auth/OtpVerificationPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/Auth/ForgotPasswordPage"));
+const StudentAssignmentDetail=lazy(()=>import("./pages/StudentDashboard/StudentAssignmentDetail"));
+const AssignmentDetailPage = lazy(() => import("./pages/Dashboard/AssignmentDetail/AssignmentDetailPage"));
 
 
 const AUTH_ROUTES = ["/login", "/signup","/forgot-password","/verify-otp"];
@@ -54,8 +56,10 @@ const AppShell = () => {
             <Route path="/grading" element={<ProtectedRoute allowedRoles={["TEACHER"]}><GradingPage /></ProtectedRoute>} />
             <Route path="/insights" element={<ProtectedRoute allowedRoles={["TEACHER"]}><InsightsPage /></ProtectedRoute>} />
             <Route path="/feedback" element={<ProtectedRoute allowedRoles={["TEACHER"]}><FeedbackPage /></ProtectedRoute>} />
+            <Route path="/assignment/:id" element={<ProtectedRoute allowedRoles={["TEACHER"]}><AssignmentDetailPage /></ProtectedRoute>} />
 
             <Route path="/student" element={<ProtectedRoute allowedRoles={["STUDENT"]}><StudentDashboard /></ProtectedRoute>} />
+             <Route path="/student/assignment/:id" element={<ProtectedRoute allowedRoles={["STUDENT"]}><StudentAssignmentDetail /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

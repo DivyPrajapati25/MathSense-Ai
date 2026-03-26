@@ -3,14 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, ChevronDown } from "lucide-react";
 import ClassCard from "../ClassCard/ClassCard";
 import { backdropVariants, modalVariants, dropdownVariants } from "../../../utils/animations";
+import api from "../../../services/api"; 
 
 const GRADE_OPTIONS = [
     "Grade 6", "Grade 7", "Grade 8",
     "Grade 9", "Grade 10", "Grade 11", "Grade 12",
-];
-const INITIAL_CLASSES = [
-    { id: 1, name: "Class 1", grade: "Grade 9", studentCount: 28, color: "blue" },
-    { id: 2, name: "Class 2", grade: "Grade 10", studentCount: 24, color: "green" },
 ];
 
 const CreateClassModal = ({ onClose, onCreate }) => {
@@ -135,14 +132,27 @@ const CreateClassModal = ({ onClose, onCreate }) => {
 };
 
 const ClassManagement = () => {
-    const [classes, setClasses] = useState(INITIAL_CLASSES);
+    const [classes, setClasses] = useState([]); 
     const [modalOpen, setModalOpen] = useState(false);
     const COLORS = ["blue", "green", "blue", "green"];
+
+    // useEffect(() => {
+    //     api.get("/teacher/dashboard").then((res) => {
+    //         const standards = res.data?.data?.standards ?? [];
+    //         setClasses(standards.map((s, i) => ({
+    //             id: s.standard_id,
+    //             name: `Class ${s.standard}`,
+    //             grade: `Grade ${s.standard}`,
+    //             studentCount: s.total_students,
+    //             color: COLORS[i % COLORS.length],
+    //         })));
+    //     }).catch(() => setClasses([]));
+    // }, []);
 
     const handleCreate = ({ name, grade }) => {
         setClasses((prev) => [
             ...prev,
-            { id: Date.now(), name, grade, studentCount: 0, color: COLORS[prev.length % COLORS.length] },
+            { id: Date.now(), name, grade, studentCount:  0, color: COLORS[prev.length % COLORS.length] },
         ]);
     };
 
@@ -155,12 +165,17 @@ const ClassManagement = () => {
                     <Plus className="w-4 h-4 mr-2" />Create New Class
                 </button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                {classes.map((cls) => (
-                    <ClassCard key={cls.id} name={cls.name} grade={cls.grade} studentCount={cls.studentCount} color={cls.color} />
-                ))}
-            </div>
+            {classes.length === 0 ? (
+                <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-gray-200">
+                    <p className="text-gray-400 text-sm">No classes found.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    {classes.map((cls) => (
+                        <ClassCard key={cls.id} name={cls.name} grade={cls.grade} studentCount={cls.studentCount} color={cls.color} />
+                    ))}
+                </div>
+            )}
 
             <AnimatePresence>
                 {modalOpen && (

@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 const loginSchema = yup.object().shape({
     email: yup
         .string()
+        .transform((value) => value?.trim())
         .email("Please enter a valid email address")
         .required("Email is required"),
     password: yup
@@ -23,7 +24,9 @@ const LoginPage = () => {
     const [errors, setErrors] = useState({});
     const [apiError, setApiError] = useState("");
     const [successMessage, setSuccessMessage] = useState(
-        location.state?.passwordReset ? "Password changed successfully! Please login with your new password." : ""
+        location.state?.passwordReset
+            ? "Password changed successfully! Please login with your new password."
+            : ""
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -31,9 +34,7 @@ const LoginPage = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
-        if (errors[name]) {
-            setErrors((prev) => ({ ...prev, [name]: "" }));
-        }
+        if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
         if (apiError) setApiError("");
         if (successMessage) setSuccessMessage("");
     };
@@ -64,21 +65,33 @@ const LoginPage = () => {
             await login(trimmedFormData.email, formData.password);
         } catch (err) {
             if (!err.response) {
-                setApiError("Network error. Please check your internet connection. ");
-            } else {
-                const data = err.response.data;
-                const detail = data?.detail;
-                const message = data?.message || data?.error;
+                setApiError("Network error. Please check your internet connection.");
+                return;
+            }
 
+            const status = err.response?.status;
+            const data = err.response?.data;
+            const detail = data?.detail;
+            const message = data?.message || data?.error;
+
+            if (status === 401 || status === 403) {
+                setApiError("Invalid email or password.");
+            } else if (status === 500) {
+                setApiError("Something went wrong on our end. Please try again later.");
+            } else if (status === 422) {
                 if (Array.isArray(detail)) {
                     setApiError(detail.map((d) => d.msg || d.message || d).join(", "));
-                } else if (typeof detail === "string") {
-                    setApiError(detail);
-                } else if (message) {
-                    setApiError("Invalid email or password.");
                 } else {
-                    setApiError("Login failed. Please try again.");
+                    setApiError(detail || message || "Invalid data. Please check your inputs.");
                 }
+            } else if (Array.isArray(detail)) {
+                setApiError(detail.map((d) => d.msg || d.message || d).join(", "));
+            } else if (typeof detail === "string") {
+                setApiError(detail);
+            } else if (message) {
+                setApiError(message);
+            } else {
+                setApiError("Login failed. Please try again.");
             }
         } finally {
             setIsSubmitting(false);
@@ -103,9 +116,7 @@ const LoginPage = () => {
                         <LogIn className="w-8 h-8 text-white" />
                     </motion.div>
                     <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-                    <p className="text-gray-500 mt-2">
-                        Sign in to your MathSense AI account
-                    </p>
+                    <p className="text-gray-500 mt-2">Sign in to your MathSense AI account</p>
                 </div>
 
                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100 p-8">
@@ -131,12 +142,9 @@ const LoginPage = () => {
                         </motion.div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} noValidate className="space-y-5">
                         <div>
-                            <label
-                                htmlFor="login-email"
-                                className="block text-sm font-medium text-gray-700 mb-1.5"
-                            >
+                            <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-1.5">
                                 Email Address *
                             </label>
                             <div className="relative">
@@ -155,16 +163,11 @@ const LoginPage = () => {
                                         }`}
                                 />
                             </div>
-                            {errors.email && (
-                                <p className="mt-1.5 text-xs text-red-600">{errors.email}</p>
-                            )}
+                            {errors.email && <p className="mt-1.5 text-xs text-red-600">{errors.email}</p>}
                         </div>
 
                         <div>
-                            <label
-                                htmlFor="login-password"
-                                className="block text-sm font-medium text-gray-700 mb-1.5"
-                            >
+                            <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-1.5">
                                 Password *
                             </label>
                             <div className="relative">
@@ -185,19 +188,13 @@ const LoginPage = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword((p) => !p)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray.600 transition-colors p-1"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
                                     tabIndex={-1}
                                 >
-                                    {showPassword ? (
-                                        <Eye className="w-4 h-4" />
-                                    ) : (
-                                        <EyeOff className="w-4 h-4" />
-                                    )}
+                                    {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                                 </button>
                             </div>
-                            {errors.password && (
-                                <p className="mt-1.5 text-xs text-red-600">{errors.password}</p>
-                            )}
+                            {errors.password && <p className="mt-1.5 text-xs text-red-600">{errors.password}</p>}
                         </div>
 
                         <div className="flex justify-end -mt-2">
@@ -227,10 +224,7 @@ const LoginPage = () => {
 
                     <p className="text-center text-sm text-gray-500 mt-6">
                         Don&apos;t have an account?{" "}
-                        <Link
-                            to="/signup"
-                            className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-                        >
+                        <Link to="/signup" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
                             Create Account
                         </Link>
                     </p>
