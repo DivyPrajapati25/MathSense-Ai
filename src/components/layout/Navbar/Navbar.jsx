@@ -1,23 +1,29 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import * as yup from "yup"; // ✅ added yup
+import * as yup from "yup";
 import {
   Brain, Upload, CircleCheckBig, BarChart2,
   MessageSquare, Menu, X, LogOut, Pencil,
   User, Phone, Lock, Eye, EyeOff,
   Loader, AlertCircle, CheckCircle, ChevronDown,
+  Camera, Trash2,
 } from "lucide-react";
 import Logo from "./Logo";
 import { useAuth } from "../../../context/AuthContext";
-import api from "../../../services/api";
+import {
+  getUserProfile, updateUserProfile,
+  getProfileImage, uploadProfileImage,
+  updateProfileImage, deleteProfileImage,
+  getProfileImageUrl,
+} from "../../../services/userService";
 
 const TEACHER_NAV_ITEMS = [
   { label: "Dashboard", icon: Brain, id: "dashboard", path: "/" },
   { label: "Upload", icon: Upload, id: "upload", path: "/upload" },
-  { label: "Grading", icon: CircleCheckBig, id: "grading", path: "/grading" },
+  // { label: "Grading", icon: CircleCheckBig, id: "grading", path: "/grading" },
   { label: "Insights", icon: BarChart2, id: "insights", path: "/insights" },
-  { label: "Feedback", icon: MessageSquare, id: "feedback", path: "/feedback" },
+  // { label: "Feedback", icon: MessageSquare, id: "feedback", path: "/feedback" },
 ];
 
 const STUDENT_NAV_ITEMS = [
@@ -25,91 +31,93 @@ const STUDENT_NAV_ITEMS = [
 ];
 
 const GENDER_OPTIONS = ["MALE", "FEMALE", "OTHER"];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-// ✅ Yup validation schema — same pattern as SignupPage
+// ─── Avatar Component ───
+const Avatar = ({ src, name, size = "md", className = "" }) => {
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => { setImgError(false); }, [src]);
+  const sizes = { xs: "w-6 h-6 text-[10px]", sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-20 h-20 text-2xl" };
+  const initial = name?.[0]?.toUpperCase() || "U";
+
+  const showImage = src && !imgError;
+
+  return showImage ? (
+    <img
+      src={src}
+      alt={name || "Profile"}
+      onError={() => setImgError(true)}
+      className={`${sizes[size]} rounded-full object-cover shrink-0 ${className}`}
+    />
+  ) : (
+    <div className={`${sizes[size]} rounded-full bg-linear-to-br from-blue-600 to-green-500 flex items-center justify-center text-white font-bold shrink-0 ${className}`}>
+      {initial}
+    </div>
+  );
+};
+
+// ─── Yup schema for edit profile ───
 const editProfileSchema = yup.object().shape({
-  first_name: yup
-    .string()
-    .trim()
-    .required("First name is required")
-    .min(2, "First name must be at least 2 characters")
-    .max(50, "First name must be at most 50 characters"),
-  last_name: yup
-    .string()
-    .trim()
-    .max(50, "Last name must be at most 50 characters")
-    .nullable(),
-  phone: yup
-    .string()
-    .matches(/^[0-9]+$/, "Phone must contain only digits")
-    .min(10, "Phone must be 10 digits")
-    .max(10, "Phone must be 10 digits")
-    .nullable()
-    .transform((value) => value?.trim() || null),
-  password: yup
-    .string()
-    .nullable()
-    .transform((value) => value || null)
-    .test(
-      "password-min",
-      "Password must be at least 8 characters",
-      (value) => !value || value.length >= 8
-    ),
+  first_name: yup.string().trim().required("First name is required").min(2, "Min 2 characters").max(50, "Max 50 characters"),
+  last_name: yup.string().trim().max(50, "Max 50 characters").nullable(),
+  phone: yup.string().matches(/^[0-9]+$/, "Digits only").min(10, "Must be 10 digits").max(10, "Must be 10 digits").nullable().transform((v) => v?.trim() || null),
+  password: yup.string().nullable().transform((v) => v || null).test("pw-min", "Min 8 characters", (v) => !v || v.length >= 8),
 });
 
-// ✅ Edit Profile Modal
-const EditProfileModal = ({ profile, onClose, onSaved }) => {
-  const [form, setForm] = useState({
+// ─── Edit Profile Modal ───
+const EditProfileModal = ({ profile, profileImageUrl, onClose, onSaved, onImageChanged }) => {
+  const initialForm = {
     first_name: profile?.first_name ?? "",
     last_name: profile?.last_name ?? "",
     phone: profile?.phone ?? "",
     gender: profile?.gender ?? "MALE",
     password: "",
-  });
+  };
+  const [form, setForm] = useState(initialForm);
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [apiError, setApiError] = useState("");
   const [success, setSuccess] = useState("");
+  const [imageLoading, setImageLoading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Track whether any field has been modified
+  const isDirty = form.first_name !== initialForm.first_name
+    || form.last_name !== initialForm.last_name
+    || form.phone !== initialForm.phone
+    || form.gender !== initialForm.gender
+    || form.password.length > 0;
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => { document.body.style.overflow = ""; document.removeEventListener("keydown", onKey); };
   }, [onClose]);
+  
+useEffect(() => {
+  console.log("profileImageUrl:", profileImageUrl);
+}, [profileImageUrl]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    // ✅ Clear field error on change — same as SignupPage
     if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     if (apiError) setApiError("");
   };
 
   const handleSave = async () => {
-    setApiError("");
-    setSuccess("");
-
-    // ✅ Validate with yup — same pattern as SignupPage
+    setApiError(""); setSuccess("");
     try {
-      await editProfileSchema.validate(
-        { ...form, phone: form.phone || null, password: form.password || null },
-        { abortEarly: false }
-      );
+      await editProfileSchema.validate({ ...form, phone: form.phone || null, password: form.password || null }, { abortEarly: false });
       setFieldErrors({});
     } catch (validationError) {
       const errors = {};
-      validationError.inner.forEach((err) => {
-        if (!errors[err.path]) errors[err.path] = err.message;
-      });
+      validationError.inner.forEach((err) => { if (!errors[err.path]) errors[err.path] = err.message; });
       setFieldErrors(errors);
       return;
     }
-
     setIsSaving(true);
     try {
       const payload = {
@@ -117,19 +125,53 @@ const EditProfileModal = ({ profile, onClose, onSaved }) => {
         last_name: form.last_name?.trim() || null,
         phone: form.phone?.trim() || null,
         gender: form.gender,
-        role: profile?.role, // ✅ always preserve role
+        role: profile?.role,
         ...(form.password ? { password: form.password } : {}),
       };
-      await api.patch("/user/", payload);
+      await updateUserProfile(payload);
       setSuccess("Profile updated successfully!");
       onSaved(payload);
       setTimeout(() => onClose(), 1500);
     } catch (err) {
       const message = err.response?.data?.message || err.response?.data?.detail;
-      setApiError(!err.response ? "Network error. Please check your connection."
-        : typeof message === "string" ? message : "Failed to update profile.");
+      setApiError(!err.response ? "Network error." : typeof message === "string" ? message : "Failed to update profile.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_IMAGE_SIZE) { setApiError("Image must be under 5 MB."); return; }
+    if (!file.type.startsWith("image/")) { setApiError("Only image files are allowed."); return; }
+
+    setImageLoading(true); setApiError("");
+    try {
+      const res = profileImageUrl
+        ? await updateProfileImage(file)
+        : await uploadProfileImage(file);
+      const newPath = res.data?.data?.profile_image_path;
+      onImageChanged(newPath);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.detail;
+      setApiError(typeof msg === "string" ? msg : "Failed to upload image.");
+    } finally {
+      setImageLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleImageDelete = async () => {
+    setImageLoading(true); setApiError("");
+    try {
+      await deleteProfileImage();
+      onImageChanged(null);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.detail;
+      setApiError(typeof msg === "string" ? msg : "Failed to delete image.");
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -151,6 +193,32 @@ const EditProfileModal = ({ profile, onClose, onSaved }) => {
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+          {/* Profile Image Section */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative group">
+              <Avatar src={profileImageUrl} name={form.first_name} size="lg" />
+              {imageLoading && (
+                <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                  <Loader className="w-5 h-5 animate-spin text-white" />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={imageLoading}
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+                <Camera className="w-3.5 h-3.5" />
+                {profileImageUrl ? "Change Photo" : "Upload Photo"}
+              </button>
+              {profileImageUrl && (
+                <button type="button" onClick={handleImageDelete} disabled={imageLoading}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50">
+                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* Read-only info */}
           <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
@@ -179,9 +247,7 @@ const EditProfileModal = ({ profile, onClose, onSaved }) => {
 
           {/* First Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              First Name <span className="text-red-500">*</span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">First Name <span className="text-red-500">*</span></label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input name="first_name" value={form.first_name} onChange={handleChange} maxLength={50}
@@ -259,8 +325,8 @@ const EditProfileModal = ({ profile, onClose, onSaved }) => {
             className="h-10 px-5 rounded-xl text-sm font-medium border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors disabled:opacity-50">
             Cancel
           </button>
-          <button onClick={handleSave} disabled={isSaving}
-            className="h-10 px-5 rounded-xl text-sm font-medium text-white bg-linear-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600 transition-all disabled:opacity-50 inline-flex items-center gap-2 shadow-sm">
+          <button onClick={handleSave} disabled={isSaving || !isDirty}
+            className="h-10 px-5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-green-500 hover:from-blue-700 hover:to-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 shadow-sm">
             {isSaving ? <><Loader className="w-4 h-4 animate-spin" /> Saving...</> : "Save Changes"}
           </button>
         </div>
@@ -269,8 +335,8 @@ const EditProfileModal = ({ profile, onClose, onSaved }) => {
   );
 };
 
-// ✅ Profile Dropdown
-const ProfileDropdown = ({ user, onEditClick, onLogout }) => (
+// ─── Profile Dropdown ───
+const ProfileDropdown = ({ user, profileImageUrl, onEditClick, onLogout }) => (
   <motion.div
     initial={{ opacity: 0, y: -8, scale: 0.95 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -280,9 +346,7 @@ const ProfileDropdown = ({ user, onEditClick, onLogout }) => (
   >
     <div className="px-4 py-3 border-b border-gray-100">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-600 to-green-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
-          {user?.first_name?.[0]?.toUpperCase() || "U"}
-        </div>
+        <Avatar src={profileImageUrl} name={user?.first_name} size="sm" />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">{user?.first_name} {user?.last_name || ""}</p>
           <p className="text-xs text-gray-500 truncate">{user?.email}</p>
@@ -305,6 +369,7 @@ const ProfileDropdown = ({ user, onEditClick, onLogout }) => (
   </motion.div>
 );
 
+// ─── Nav Item ───
 const NavItem = ({ item, isActive, onClick }) => {
   const Icon = item.icon;
   return (
@@ -322,12 +387,9 @@ const NavItem = ({ item, isActive, onClick }) => {
   );
 };
 
-const JoinBetaButton = ({ full = false }) => (
-  <button className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 outline-none h-9 px-4 py-2 bg-linear-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg cursor-pointer ${full ? "w-full" : ""}`}>
-    Join Beta
-  </button>
-);
 
+
+// ─── Mobile Menu ───
 const mobileMenuVariants = {
   hidden: { height: 0, opacity: 0, transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] } },
   visible: { height: "auto", opacity: 1, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } },
@@ -341,16 +403,14 @@ const mobileContainerVariants = {
   visible: { transition: { staggerChildren: 0.05, delayChildren: 0.05 } },
 };
 
-const MobileMenu = ({ navItems, activePath, onItemClick, onClose, onLogout, onEditProfile, user }) => (
+const MobileMenu = ({ navItems, activePath, onItemClick, onClose, onLogout, onEditProfile, user, profileImageUrl }) => (
   <motion.div
     className="lg:hidden overflow-hidden border-t border-blue-100 bg-white"
     variants={mobileMenuVariants} initial="hidden" animate="visible" exit="hidden">
     <motion.div className="px-4 pt-3 pb-4 space-y-1" variants={mobileContainerVariants} initial="hidden" animate="visible">
       <motion.div variants={mobileItemVariants}
         className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-xl bg-blue-50/60 border border-blue-100">
-        <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-600 to-green-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-          {user?.first_name?.[0]?.toUpperCase() || "U"}
-        </div>
+        <Avatar src={profileImageUrl} name={user?.first_name} size="sm" />
         <div className="min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">{user?.first_name} {user?.last_name || ""}</p>
           <p className="text-xs text-gray-500 capitalize">{user?.role?.toLowerCase()}</p>
@@ -371,7 +431,7 @@ const MobileMenu = ({ navItems, activePath, onItemClick, onClose, onLogout, onEd
       })}
 
       <motion.div variants={mobileItemVariants} className="pt-2 space-y-2">
-        <JoinBetaButton full />
+       
         <button onClick={() => { onEditProfile(); onClose(); }}
           className="w-full flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors">
           <Pencil className="w-4 h-4" /> Edit Profile
@@ -385,6 +445,7 @@ const MobileMenu = ({ navItems, activePath, onItemClick, onClose, onLogout, onEd
   </motion.div>
 );
 
+// ─── Main Navbar ───
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -393,11 +454,14 @@ const Navbar = () => {
   const [profileDropOpen, setProfileDropOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [profileImagePath, setProfileImagePath] = useState(null);
   const dropdownRef = useRef(null);
 
   const activePath = location.pathname;
   const navItems = user?.role === "STUDENT" ? STUDENT_NAV_ITEMS : TEACHER_NAV_ITEMS;
+  const profileImageUrl = getProfileImageUrl(profileImagePath);
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -408,14 +472,22 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const handleProfileClick = async () => {
+  // Fetch profile + image on first mount (separate catches so one failure doesn't block the other)
+  const fetchProfileData = useCallback(async () => {
+    try {
+      const res = await getUserProfile();
+      setProfile(res.data?.data ?? null);
+    } catch { }
+    try {
+      const res = await getProfileImage();
+      setProfileImagePath(res.data?.data?.profile_image_path ?? null);
+    } catch { }
+  }, []);
+
+  useEffect(() => { fetchProfileData(); }, [fetchProfileData]);
+
+  const handleProfileClick = () => {
     setProfileDropOpen((p) => !p);
-    if (!profile) {
-      try {
-        const res = await api.get("/user/");
-        setProfile(res.data?.data ?? null);
-      } catch { }
-    }
   };
 
   const handleEditClick = () => {
@@ -425,6 +497,10 @@ const Navbar = () => {
 
   const handleProfileSaved = (updatedData) => {
     setProfile((prev) => ({ ...prev, ...updatedData }));
+  };
+
+  const handleImageChanged = (newPath) => {
+    setProfileImagePath(newPath);
   };
 
   const handleNavClick = (item) => navigate(item.path);
@@ -451,23 +527,18 @@ const Navbar = () => {
               <div className="hidden lg:block relative" ref={dropdownRef}>
                 <button onClick={handleProfileClick}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
-                  <div className="w-6 h-6 rounded-full bg-linear-to-br from-blue-600 to-green-500 flex items-center justify-center text-white text-[10px] font-bold">
-                    {displayName[0]?.toUpperCase() || "U"}
-                  </div>
+                  <Avatar src={profileImageUrl} name={displayName} size="xs" />
                   <span className="text-sm font-medium text-gray-700 max-w-[100px] truncate">{displayName}</span>
                   <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${profileDropOpen ? "rotate-180" : ""}`} />
                 </button>
                 <AnimatePresence>
                   {profileDropOpen && (
-                    <ProfileDropdown user={profile || user} onEditClick={handleEditClick} onLogout={logout} />
+                    <ProfileDropdown user={profile || user} profileImageUrl={profileImageUrl} onEditClick={handleEditClick} onLogout={logout} />
                   )}
                 </AnimatePresence>
               </div>
 
-              <div className="hidden lg:flex">
-                <JoinBetaButton />
-              </div>
-
+            
               <button onClick={() => setMobileOpen((p) => !p)}
                 className="lg:hidden inline-flex items-center justify-center h-[44px] min-w-[44px] rounded-md text-gray-600 hover:bg-gray-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 aria-label="Toggle menu" aria-expanded={mobileOpen}>
@@ -497,18 +568,21 @@ const Navbar = () => {
               onLogout={logout}
               onEditProfile={handleEditClick}
               user={profile || user}
+              profileImageUrl={profileImageUrl}
             />
           )}
         </AnimatePresence>
       </div>
 
-      {/* ✅ Modal outside navbar — correct z-index */}
+      {/* Modal outside navbar */}
       <AnimatePresence>
         {editModalOpen && (
           <EditProfileModal
             profile={profile || user}
+            profileImageUrl={profileImageUrl}
             onClose={() => setEditModalOpen(false)}
             onSaved={handleProfileSaved}
+            onImageChanged={handleImageChanged}
           />
         )}
       </AnimatePresence>

@@ -2,18 +2,18 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, FileText, Upload, X, ChevronDown, Loader } from "lucide-react";
 import { backdropVariants, modalVariants, dropdownVariants } from "../../utils/animations";
+import { uploadAssignment } from "../../services/teacherService";
+import { useToast } from "../../components/common/Toast/Toast";
 import api from "../../services/api";
 
 const CreateAssignmentModal = ({ onClose, onSuccess, prefillName }) => {
+  const toast = useToast();
   const [name, setName] = useState(prefillName ?? "");
-  const [totalMarks, setTotalMarks] = useState("");
   const [selectedStandard, setSelectedStandard] = useState(null);
   const [standards, setStandards] = useState([]);
   const [dropOpen, setDropOpen] = useState(false);
   const [assignmentFile, setAssignmentFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState("");
   const assignmentRef = useRef(null);
 
   useEffect(() => {
@@ -35,39 +35,29 @@ const CreateAssignmentModal = ({ onClose, onSuccess, prefillName }) => {
     }).catch(() => setStandards([]));
   }, []);
 
-  const canSubmit = name.trim() && assignmentFile && selectedStandard && totalMarks && !isSubmitting;
+  const canSubmit = name.trim() && assignmentFile && selectedStandard && !isSubmitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setIsSubmitting(true);
-    setSubmitError("");
-    setSubmitSuccess("");
     try {
-      const formData = new FormData();
-      formData.append("file", assignmentFile);
-      formData.append("data", JSON.stringify({
-        data: {
-          // ✅ CHANGED: use "id" field from student/standards (not "standard_id")
-          standard_id: selectedStandard.id,
-          assignment_name: name.trim(),
-          total_marks: Number(totalMarks),
-        }
-      }));
-      await api.post("/teacher/assignments/", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setSubmitSuccess("Assignment created! AI is processing it in the background.");
+      const data = {
+        standard_id: selectedStandard.id,
+        assignment_name: name.trim(),
+      };
+      await uploadAssignment(assignmentFile, data);
+      toast.success("Assignment created! AI is processing it in the background.");
       onSuccess?.();
-      setTimeout(() => onClose(), 2000);
+      setTimeout(() => onClose(), 1200);
     } catch (err) {
       const status = err.response?.status;
       const message = err.response?.data?.message;
       if (status === 409) {
-        setSubmitError("An assignment with this name already exists. Please use a different name.");
+        toast.error("An assignment with this name already exists. Please use a different name.");
       } else if (!err.response) {
-        setSubmitError("Network error. Please check your connection.");
+        toast.error("Network error. Please check your connection.");
       } else {
-        setSubmitError(message || "Failed to create assignment. Please try again.");
+        toast.error(message || "Failed to create assignment. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -126,7 +116,7 @@ const CreateAssignmentModal = ({ onClose, onSuccess, prefillName }) => {
                 >
                   <span className={selectedStandard ? "text-gray-900" : "text-gray-400"}>
                     {/* ✅ CHANGED: no total_students in this API */}
-                    {selectedStandard ? `Grade ${selectedStandard.standard}` : "Select standard"}
+                    {selectedStandard ? `Class ${selectedStandard.standard}` : "Select standard"}
                   </span>
                   <motion.span animate={{ rotate: dropOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
                     <ChevronDown className="w-4 h-4 opacity-50" />
@@ -148,7 +138,7 @@ const CreateAssignmentModal = ({ onClose, onSuccess, prefillName }) => {
                             onClick={() => { setSelectedStandard(s); setDropOpen(false); }}
                             className={`flex w-full px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors ${selectedStandard?.id === s.id ? "bg-gray-50 font-medium" : ""}`}
                           >
-                            Grade {s.standard}
+                            Class {s.standard}
                           </button>
                         ))
                       )}
@@ -156,18 +146,6 @@ const CreateAssignmentModal = ({ onClose, onSuccess, prefillName }) => {
                   )}
                 </AnimatePresence>
               </div>
-            </div>
-
-            {/* Total Marks */}
-            <div>
-              <label htmlFor="totalMarks" className="flex items-center gap-2 text-sm font-medium leading-none mb-1 select-none">
-                Total Marks <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="totalMarks" type="number" placeholder="e.g., 100"
-                value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors mt-1"
-              />
             </div>
 
             {/* Upload PDF */}
@@ -185,13 +163,6 @@ const CreateAssignmentModal = ({ onClose, onSuccess, prefillName }) => {
               <input ref={assignmentRef} type="file" accept=".pdf" className="hidden"
                 onChange={(e) => setAssignmentFile(e.target.files?.[0] ?? null)} />
             </div>
-
-            {submitSuccess && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">{submitSuccess}</div>
-            )}
-            {submitError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{submitError}</div>
-            )}
           </div>
         </div>
 

@@ -1,280 +1,408 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-    ArrowLeft, Loader, AlertCircle, CheckCircle,
-    XCircle, MessageSquare, Brain, Award, FileText
+  ArrowLeft, Loader, AlertCircle, CheckCircle,
+  XCircle, MessageSquare, Brain, Award, FileText, Clock,
+  ChevronDown, ChevronUp,
 } from "lucide-react";
-// ✅ ADDED: KaTeX for LaTeX rendering
-import { InlineMath, BlockMath } from "react-katex";
-import "katex/dist/katex.min.css";
-import api from "../../services/api";
+import MathText from "../../components/common/MathText/MathText";
+import { formatDate } from "../../utils/formatDate";
+import { getStudentAssignment } from "../../services/studentService";
 
-const formatDate = (dateStr) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("en-US", {
-        month: "short", day: "numeric", year: "numeric",
-    });
-};
-
-// ✅ ADDED: Renders text with LaTeX math expressions
-// Handles both $...$ inline and $$...$$ block math
-const MathText = ({ text }) => {
-    if (!text) return null;
-
-    try {
-        // Split by $$...$$ (block math) first
-        const blockParts = text.split(/(\$\$[\s\S]*?\$\$)/g);
-
-        return (
-            <span>
-                {blockParts.map((part, i) => {
-                    if (part.startsWith("$$") && part.endsWith("$$")) {
-                        const math = part.slice(2, -2).trim();
-                        return (
-                            <span key={i} className="block my-1">
-                                <BlockMath math={math} />
-                            </span>
-                        );
-                    }
-
-                    // Split remaining by $...$ (inline math)
-                    const inlineParts = part.split(/(\$[^$\n]+?\$)/g);
-                    return (
-                        <span key={i}>
-                            {inlineParts.map((inline, j) => {
-                                if (inline.startsWith("$") && inline.endsWith("$") && inline.length > 2) {
-                                    const math = inline.slice(1, -1).trim();
-                                    return <InlineMath key={j} math={math} />;
-                                }
-                                return <span key={j}>{inline}</span>;
-                            })}
-                        </span>
-                    );
-                })}
-            </span>
-        );
-    } catch {
-        // ✅ Fallback to plain text if KaTeX fails
-        return <span>{text}</span>;
-    }
-};
+// ✅ Max polling: 3 minutes (60 × 3s)
+const MAX_POLL_ATTEMPTS = 60;
+const POLL_INTERVAL_MS  = 3000;
 
 const parseFeedback = (feedback) => {
-    if (!feedback) return null;
-    try {
-        const parsed = JSON.parse(feedback);
-        if (parsed?.evaluation) return parsed;
-        return { plain: String(feedback) };
-    } catch {
-        return { plain: String(feedback) };
-    }
+  if (!feedback) return null;
+  try {
+    const parsed = JSON.parse(feedback);
+    if (parsed?.evaluation) return parsed;
+    return { plain: String(feedback) };
+  } catch {
+    return { plain: String(feedback) };
+  }
 };
 
 const AIFeedbackDisplay = ({ feedback }) => {
-    const parsed = parseFeedback(feedback);
-    if (!parsed) return null;
-
-    if (parsed.plain) {
-        return <p className="text-sm text-purple-900">{parsed.plain}</p>;
-    }
-
-    return (
-        <div className="space-y-2">
-            {parsed.evaluation?.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                    {item.correct
-                        ? <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                        : <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                    }
-                    <div className="flex-1">
-                        <p className="text-sm text-purple-900">{item.step}</p>
-                        <p className="text-xs text-purple-600">{item.obtained_marks} marks</p>
-                    </div>
-                </div>
-            ))}
-            {parsed.critical_mistake && (
-                <div className="mt-2 p-2 bg-red-50 rounded-lg border border-red-100">
-                    <p className="text-xs font-medium text-red-600">⚠️ {parsed.critical_mistake}</p>
-                </div>
-            )}
+  const parsed = parseFeedback(feedback);
+  if (!parsed) return null;
+  if (parsed.plain) return <p className="text-sm text-gray-700">{parsed.plain}</p>;
+  return (
+    <div className="space-y-2">
+      {parsed.evaluation?.map((item, i) => (
+        <div key={i} className="flex items-start gap-2.5">
+          {item.correct
+            ? <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+            : <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-700">{item.step}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{item.obtained_marks} {item.obtained_marks === 1 ? "mark" : "marks"}</p>
+          </div>
         </div>
-    );
+      ))}
+      {parsed.critical_mistake && (
+        <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-100 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <p className="text-xs font-medium text-red-600">{parsed.critical_mistake}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ScoreBar = ({ value, max, color = "blue" }) => {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  const barColor = color === "auto"
+    ? pct >= 80 ? "bg-green-500" : pct >= 50 ? "bg-amber-400" : "bg-red-400"
+    : "bg-blue-500";
+  return (
+    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+      <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+        transition={{ duration: 0.7, ease: "easeOut" }} className={`h-1.5 rounded-full ${barColor}`} />
+    </div>
+  );
 };
 
 const QuestionCard = ({ question, index }) => {
-    const isCorrect = question.marks_awarded === question.max_marks;
-    const isPartial = question.marks_awarded > 0 && question.marks_awarded < question.max_marks;
+  const [expanded, setExpanded] = useState(true);
+  const isCorrect = question.marks_awarded === question.max_marks;
+  const isPartial = question.marks_awarded > 0 && question.marks_awarded < question.max_marks;
+  const pct = question.max_marks > 0 ? Math.round((question.marks_awarded / question.max_marks) * 100) : 0;
+  const statusColor = isCorrect
+    ? "bg-green-50 border-green-200 text-green-700"
+    : isPartial ? "bg-amber-50 border-amber-200 text-amber-700"
+    : "bg-red-50 border-red-200 text-red-600";
+  const leftBorder = isCorrect ? "border-l-green-400" : isPartial ? "border-l-amber-400" : "border-l-red-400";
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4"
-        >
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                    <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0">
-                        {question.question_no}
-                    </span>
-                    {/* ✅ CHANGED: render question with LaTeX */}
-                    <p className="font-medium text-gray-900">
-                        <MathText text={question.question} />
-                    </p>
-                </div>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium shrink-0 ${
-                    isCorrect ? "bg-green-100 text-green-700 border border-green-200"
-                    : isPartial ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
-                    : "bg-red-100 text-red-700 border border-red-200"
-                }`}>
-                    {isCorrect ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                    {question.marks_awarded}/{question.max_marks}
-                </span>
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
+      className={`bg-white rounded-xl border border-gray-200 border-l-4 ${leftBorder} overflow-hidden`}>
+      <button onClick={() => setExpanded((p) => !p)}
+        className="w-full flex items-start gap-4 p-5 text-left hover:bg-gray-50 transition-colors">
+        <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0 mt-0.5">
+          {question.question_no}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-gray-900 text-sm leading-relaxed">
+            <MathText text={question.question} />
+          </p>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${statusColor}`}>
+              {isCorrect ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+              {question.marks_awarded}/{question.max_marks} marks
+            </span>
+            <div className="flex items-center gap-2 flex-1 min-w-[100px]">
+              <ScoreBar value={question.marks_awarded} max={question.max_marks} color="auto" />
+              <span className="text-xs text-gray-400 shrink-0">{pct}%</span>
             </div>
+          </div>
+        </div>
+        <div className="shrink-0 text-gray-400 mt-1">
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
+      </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                    <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
-                        <FileText className="w-3 h-3" /> Your Answer
-                    </p>
-                    {/* ✅ CHANGED: render student answer with LaTeX */}
-                    <p className="text-sm text-gray-800">
-                        <MathText text={question.student_answer || "—"} />
-                    </p>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                    <p className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1">
-                        <Brain className="w-3 h-3" /> AI Answer
-                    </p>
-                    {/* ✅ CHANGED: render AI answer with LaTeX */}
-                    <p className="text-sm text-blue-900">
-                        <MathText text={question.ai_generated_answer || "—"} />
-                    </p>
-                </div>
+      {expanded && (
+        <div className="px-5 pb-5 flex flex-col gap-4 border-t border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4">
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1.5 uppercase tracking-wide">
+                <FileText className="w-3.5 h-3.5" /> Your Answer
+              </p>
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                <MathText text={question.student_answer || "—"} />
+              </p>
             </div>
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <p className="text-xs font-semibold text-blue-500 mb-2 flex items-center gap-1.5 uppercase tracking-wide">
+                <Brain className="w-3.5 h-3.5" /> Model Answer
+              </p>
+              <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">
+                <MathText text={question.final_answer || question.ai_generated_answer || "—"} />
+              </p>
+            </div>
+          </div>
+          {question.ai_feedback && (
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+              <p className="text-xs font-semibold text-purple-500 mb-3 flex items-center gap-1.5 uppercase tracking-wide">
+                <Brain className="w-3.5 h-3.5" /> AI Feedback
+              </p>
+              <AIFeedbackDisplay feedback={question.ai_feedback} />
+            </div>
+          )}
+          {question.teacher_feedback && (
+            <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+              <p className="text-xs font-semibold text-green-600 mb-3 flex items-center gap-1.5 uppercase tracking-wide">
+                <MessageSquare className="w-3.5 h-3.5" /> Teacher Feedback
+              </p>
+              <AIFeedbackDisplay feedback={question.teacher_feedback} />
+            </div>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
-            {question.ai_feedback && (
-                <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
-                    <p className="text-xs font-medium text-purple-600 mb-2 flex items-center gap-1">
-                        <Brain className="w-3 h-3" /> AI Feedback
-                    </p>
-                    <AIFeedbackDisplay feedback={question.ai_feedback} />
-                </div>
-            )}
+// ✅ Processing state with timeout message
+const ProcessingState = ({ timedOut }) => (
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="flex flex-col items-center justify-center h-64 gap-4">
+      {timedOut ? (
+        <AlertCircle className="w-10 h-10 text-orange-500" />
+      ) : (
+        <Loader className="w-10 h-10 animate-spin text-blue-600" />
+      )}
+      <div className="text-center">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">
+          {timedOut ? "Processing is taking longer than expected" : "AI is evaluating..."}
+        </h2>
+        <p className="text-sm text-gray-500">
+          {timedOut
+            ? "Please refresh the page in a few minutes to check your results."
+            : "Your answers are being processed. This page will update automatically."}
+        </p>
+        {timedOut && (
+          <button onClick={() => window.location.reload()}
+            className="mt-4 inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            Refresh Page
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+);
 
-            {question.teacher_feedback && (
-                <div className="p-3 bg-green-50 rounded-xl border border-green-100">
-                    <p className="text-xs font-medium text-green-600 mb-2 flex items-center gap-1">
-                        <MessageSquare className="w-3 h-3" /> Teacher Feedback
-                    </p>
-                    <AIFeedbackDisplay feedback={question.teacher_feedback} />
-                </div>
-            )}
-        </motion.div>
-    );
+const SummaryStat = ({ label, value, sub, color = "blue" }) => {
+  const palette = {
+    blue:   "bg-blue-50 text-blue-700",
+    gray:   "bg-gray-50 text-gray-700",
+    green:  "bg-green-50 text-green-700",
+    purple: "bg-purple-50 text-purple-700",
+  };
+  return (
+    <div className={`${palette[color]} rounded-xl p-4 text-center`}>
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className="text-2xl font-bold">{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+    </div>
+  );
 };
 
 const StudentAssignmentDetail = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [data, setData] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState("");
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [timedOut, setTimedOut] = useState(false);
+  const attemptsRef = useRef(0);
+  const intervalRef = useRef(null);
 
-    useEffect(() => {
-        api.get(`/student/assignment/${id}`)
-            .then((res) => setData(res.data?.data ?? null))
-            .catch((err) => {
-                const message = err.response?.data?.message;
-                setError(typeof message === "string" ? message : "Failed to load assignment.");
-            })
-            .finally(() => setIsLoading(false));
-    }, [id]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await getStudentAssignment(id);
+        const result = res.data?.data ?? null;
+        setData(result);
+        setIsLoading(false);
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader className="w-8 h-8 animate-spin text-blue-600" />
-            </div>
-        );
-    }
+        const s = result?.status;
+        const errMsg = result?.error_message;
 
-    if (error || !data) {
-        return (
-            <div className="min-h-screen flex items-center justify-center px-4">
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-                    <AlertCircle className="w-5 h-5 shrink-0" />
-                    <span>{error || "Assignment not found."}</span>
-                </div>
-            </div>
-        );
-    }
+        // ✅ If still processing, start polling
+        if (s === "PENDING" || s === "PROCESSING") {
+          // ✅ Stop if error_message exists (stuck PROCESSING state)
+          if (errMsg) {
+            setData((prev) => ({ ...prev, status: "FAILED" }));
+            return;
+          }
+          startPolling();
+        }
+      } catch (err) {
+        const message = err.response?.data?.message;
+        setError(typeof message === "string" ? message : "Failed to load assignment.");
+        setIsLoading(false);
+      }
+    };
 
-    const percentage = data.total_assignment_marks > 0
-        ? Math.round((data.obtained_marks / data.total_assignment_marks) * 100)
-        : 0;
+    const startPolling = () => {
+      attemptsRef.current = 0;
+      intervalRef.current = setInterval(async () => {
+        // ✅ Stop after MAX_POLL_ATTEMPTS
+        if (attemptsRef.current >= MAX_POLL_ATTEMPTS) {
+          clearInterval(intervalRef.current);
+          setTimedOut(true);
+          return;
+        }
+        attemptsRef.current += 1;
 
+        try {
+          const res = await getStudentAssignment(id);
+          const result = res.data?.data ?? null;
+          const s = result?.status;
+          const errMsg = result?.error_message;
+
+          setData(result);
+
+          // ✅ Stop on terminal states
+          if (s === "COMPLETED" || s === "FAILED") {
+            clearInterval(intervalRef.current);
+          }
+          // ✅ Stop if stuck in PROCESSING with error
+          if (s === "PROCESSING" && errMsg) {
+            clearInterval(intervalRef.current);
+            setData((prev) => ({ ...prev, status: "FAILED" }));
+          }
+        } catch {
+          clearInterval(intervalRef.current);
+        }
+      }, POLL_INTERVAL_MS);
+    };
+
+    fetchData();
+
+    // ✅ Cleanup on unmount
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [id]);
+
+  if (isLoading) {
     return (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <button onClick={() => navigate("/student")}
-                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-6">
-                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-            </button>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">{data.assignment_name}</h1>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-3 bg-blue-50 rounded-xl">
-                        <p className="text-xs text-gray-500 mb-1">Obtained</p>
-                        <p className="text-2xl font-bold text-blue-700">{data.obtained_marks}</p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-xl">
-                        <p className="text-xs text-gray-500 mb-1">Total</p>
-                        <p className="text-2xl font-bold text-gray-700">{data.total_assignment_marks}</p>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 rounded-xl">
-                        <p className="text-xs text-gray-500 mb-1">Percentage</p>
-                        <p className="text-2xl font-bold text-green-700">{percentage}%</p>
-                    </div>
-                    <div className="text-center p-3 bg-purple-50 rounded-xl">
-                        <p className="text-xs text-gray-500 mb-1">Submitted</p>
-                        <p className="text-sm font-bold text-purple-700">{formatDate(data.submitted_on)}</p>
-                    </div>
-                </div>
-                <div className="mt-4">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                        <span>Score</span><span>{percentage}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                        <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${percentage}%` }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className={`h-2 rounded-full ${percentage >= 80 ? "bg-green-500" : percentage >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
-                        />
-                    </div>
-                </div>
-            </motion.div>
-
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Award className="w-5 h-5 text-blue-600" /> Questions & Answers
-            </h2>
-
-            {!data.questions?.length ? (
-                <div className="flex items-center justify-center h-32 rounded-2xl border border-dashed border-gray-200">
-                    <p className="text-gray-400 text-sm">No questions available yet.</p>
-                </div>
-            ) : (
-                <div className="grid gap-4">
-                    {data.questions.map((q, i) => (
-                        <QuestionCard key={q.question_no} question={q} index={i} />
-                    ))}
-                </div>
-            )}
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
     );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button onClick={() => navigate("/student")}
+          className="inline-flex items-center gap-2 h-9 px-4 mb-6 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </button>
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{error || "Assignment not found."}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Show processing state (with timeout support)
+  if (data.status === "PENDING" || data.status === "PROCESSING") {
+    return <ProcessingState timedOut={timedOut} />;
+  }
+
+  // ✅ Show FAILED state clearly
+  if (data.status === "FAILED") {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button onClick={() => navigate("/student")}
+          className="inline-flex items-center gap-2 h-9 px-4 mb-6 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </button>
+        <div className="flex items-start gap-3 p-5 rounded-xl bg-red-50 border border-red-200 text-red-700">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold mb-1">Processing Failed</p>
+            <p className="text-sm">{data.error_message || "The AI could not process your submission. Please re-upload the correct answer PDF."}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const percentage = data.total_assignment_marks > 0
+    ? Math.round((data.obtained_marks / data.total_assignment_marks) * 100)
+    : 0;
+  const correctCount = data.questions?.filter((q) => q.marks_awarded === q.max_marks).length ?? 0;
+  const partialCount = data.questions?.filter((q) => q.marks_awarded > 0 && q.marks_awarded < q.max_marks).length ?? 0;
+  const wrongCount   = data.questions?.filter((q) => q.marks_awarded === 0).length ?? 0;
+  const barColor = percentage >= 80 ? "bg-green-500" : percentage >= 50 ? "bg-amber-400" : "bg-red-400";
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <button onClick={() => navigate("/student")}
+        className="inline-flex items-center gap-2 h-9 px-4 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      </button>
+
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{data.assignment_name}</h1>
+            <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> Submitted {formatDate(data.submitted_on)}
+            </p>
+          </div>
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold self-start ${
+            percentage >= 80 ? "bg-green-100 text-green-700"
+            : percentage >= 50 ? "bg-amber-100 text-amber-700"
+            : "bg-red-100 text-red-600"
+          }`}>{percentage}%</span>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <SummaryStat label="Obtained" value={data.obtained_marks} color="blue" />
+          <SummaryStat label="Total" value={data.total_assignment_marks} color="gray" />
+          <SummaryStat label="Correct" value={correctCount} sub={`of ${data.questions?.length ?? 0} questions`} color="green" />
+          <SummaryStat label="Score" value={`${percentage}%`} color="purple" />
+        </div>
+
+        <div>
+          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+            <span>Overall Score</span>
+            <span className="font-semibold text-gray-700">{data.obtained_marks}/{data.total_assignment_marks}</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${percentage}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }} className={`h-2.5 rounded-full ${barColor}`} />
+          </div>
+        </div>
+
+        {data.questions?.length > 0 && (
+          <div className="flex items-center gap-4 mt-4 flex-wrap">
+            <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+              <CheckCircle className="w-3.5 h-3.5" /> {correctCount} correct
+            </span>
+            {partialCount > 0 && (
+              <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
+                <Award className="w-3.5 h-3.5" /> {partialCount} partial
+              </span>
+            )}
+            {wrongCount > 0 && (
+              <span className="flex items-center gap-1.5 text-xs text-red-500 font-medium">
+                <XCircle className="w-3.5 h-3.5" /> {wrongCount} incorrect
+              </span>
+            )}
+          </div>
+        )}
+      </motion.div>
+
+      <div>
+        <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+          <Award className="w-5 h-5 text-blue-600" /> Questions & Answers
+        </h3>
+        {!data.questions?.length ? (
+          <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-gray-200">
+            <p className="text-gray-400 text-sm">No questions available yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {data.questions.map((q, i) => (
+              <QuestionCard key={q.question_id || q.question_no} question={q} index={i} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default StudentAssignmentDetail;

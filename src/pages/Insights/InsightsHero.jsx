@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BarChart3, ChevronDown } from "lucide-react";
+import { BarChart3, ChevronDown, Minus, Plus } from "lucide-react";
 import { dropdownVariants } from "../../utils/animations";
 
-const PERIODS = ["week", "month", "year", "semester"];
+const PERIODS = ["week", "month", "year"];
 
-// ✅ CHANGED: standards now come from /student/standards
-// Fields: { id, standard } — no total_students, no standard_id
-const InsightsHero = ({ standards = [], selectedStandard, onStandardChange, period, onPeriodChange }) => {
+const InsightsHero = ({ standards = [], selectedStandard, onStandardChange, period, onPeriodChange, periodValue, onPeriodValueChange }) => {
   const [dropOpen, setDropOpen] = useState(false);
 
   return (
@@ -35,7 +33,6 @@ const InsightsHero = ({ standards = [], selectedStandard, onStandardChange, peri
             className="flex h-9 items-center justify-between gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors min-w-[160px]"
           >
             <span className={selectedStandard ? "text-gray-900" : "text-gray-400"}>
-              {/* ✅ CHANGED: no total_students in student/standards */}
               {selectedStandard ? `Class ${selectedStandard.standard}` : "Select class..."}
             </span>
             <motion.span animate={{ rotate: dropOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -55,10 +52,9 @@ const InsightsHero = ({ standards = [], selectedStandard, onStandardChange, peri
                 ) : (
                   standards.map((s) => (
                     <button
-                      key={s.id} // ✅ CHANGED: use "id" not "standard_id"
+                      key={s.id}
                       type="button"
                       onClick={() => { onStandardChange(s); setDropOpen(false); }}
-                      // ✅ CHANGED: compare by "id" not "standard_id"
                       className={`flex w-full px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors ${selectedStandard?.id === s.id ? "bg-gray-50 font-medium" : ""}`}
                     >
                       Class {s.standard}
@@ -71,13 +67,13 @@ const InsightsHero = ({ standards = [], selectedStandard, onStandardChange, peri
         </div>
       </div>
 
-      {/* Period filter */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Period filter + value */}
+      <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-gray-500 mr-1">Period:</span>
         {PERIODS.map((p) => (
           <button
             key={p}
-            onClick={() => onPeriodChange(p)}
+            onClick={() => { onPeriodChange(p); onPeriodValueChange(1); }}
             className={`h-8 px-3 rounded-md text-sm font-medium capitalize transition-all ${
               period === p
                 ? "bg-blue-600 text-white shadow-sm"
@@ -87,6 +83,26 @@ const InsightsHero = ({ standards = [], selectedStandard, onStandardChange, peri
             {p}
           </button>
         ))}
+
+        {/* Value stepper */}
+        <div className="flex items-center gap-1 border border-gray-200 rounded-lg bg-gray-50 h-8 px-1.5 ml-1">
+          <button
+            onClick={() => onPeriodValueChange(Math.max(1, periodValue - 1))}
+            disabled={periodValue <= 1}
+            className="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-sm font-semibold text-gray-700 min-w-[48px] text-center">
+            Last {periodValue}
+          </span>
+          <button
+            onClick={() => onPeriodValueChange(periodValue + 1)}
+            className="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:bg-gray-200 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );

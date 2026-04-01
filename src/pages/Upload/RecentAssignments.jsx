@@ -1,87 +1,125 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Clock, Eye, Loader, AlertCircle, RefreshCw, Upload, ChevronLeft, ChevronRight } from "lucide-react";
-import api from "../../services/api";
+import {
+  FileText, Clock, Eye, Loader, AlertCircle, RefreshCw, Upload,
+  ChevronLeft, ChevronRight, Trash2, CheckCircle, Send,
+  CircleDot, XCircle,
+} from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
+import { useToast } from "../../components/common/Toast/Toast";
+import { getAssignments, deleteAssignment } from "../../services/teacherService";
 
 const PAGE_SIZE = 5;
 
-const StatusBadge = ({ status }) => {
-  const styles = {
-    PENDING:    "bg-yellow-100 border-yellow-200 text-yellow-700",
-    PROCESSING: "bg-blue-100 border-blue-200 text-blue-700",
-    COMPLETED:  "bg-green-100 border-green-200 text-green-700",
-    FAILED:     "bg-red-100 border-red-200 text-red-700",
-  };
+const timeAgo = (iso) => {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const STATUS_CONFIG = {
+  COMPLETED: { icon: CheckCircle, color: "text-green-500", bg: "bg-green-50", border: "border-green-200", label: "Completed" },
+  FAILED:    { icon: XCircle,     color: "text-red-500",   bg: "bg-red-50",   border: "border-red-200",   label: "Failed" },
+};
+
+const TABS = [
+  { label: "All",       value: "" },
+  { label: "Completed", value: "COMPLETED" },
+  { label: "Failed",    value: "FAILED" },
+];
+
+const TimelineItem = ({ assignment, onView, onRetry, onDelete, isLast }) => {
+  const cfg = STATUS_CONFIG[assignment.status] || STATUS_CONFIG.FAILED;
+  const StatusIcon = cfg.icon;
+
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium whitespace-nowrap ${styles[status] ?? "bg-gray-100 border-gray-200 text-gray-600"}`}>
-      {status}
-    </span>
-  );
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return "";
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
-  });
-};
-
-const AssignmentRow = ({ assignment, onReupload, onViewDetails }) => (
-  <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border rounded-xl px-4 py-3 hover:shadow-sm transition-shadow ${
-    assignment.status === "COMPLETED" ? "border-l-4 border-l-green-500 border-gray-200" :
-    assignment.status === "FAILED"    ? "border-l-4 border-l-red-500 border-gray-200"   :
-    assignment.status === "PENDING"   ? "border-l-4 border-l-yellow-400 border-gray-200" :
-    "border-gray-200"
-  }`}>
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-        <FileText className="w-5 h-5 text-blue-600" />
+    <div className="flex gap-4 group">
+      <div className="flex flex-col items-center shrink-0">
+        <div className={`w-8 h-8 rounded-full ${cfg.bg} ${cfg.border} border-2 flex items-center justify-center z-10`}>
+          <StatusIcon className={`w-3.5 h-3.5 ${cfg.color}`} />
+        </div>
+        {!isLast && <div className="w-0.5 flex-1 bg-gray-200 mt-1" />}
       </div>
-      <div className="min-w-0">
-        <h4 className="font-medium text-base text-gray-900 truncate">{assignment.pdf_file_name}</h4>
-        <div className="flex items-center gap-1 text-sm text-gray-500 mt-0.5 flex-wrap">
-          <span>Total Marks: {assignment.total_marks}</span>
-          <span className="flex items-center gap-1 ml-1">
-            <Clock className="w-3 h-3" />
-            {formatDate(assignment.created_at)}
-          </span>
+
+      <div className="flex-1 pb-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                <h4 className="font-medium text-sm text-gray-900 truncate">{assignment.pdf_file_name}</h4>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xs text-gray-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {timeAgo(assignment.created_at)}
+                </span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.bg} ${cfg.color}`}>
+                  <CircleDot className="w-2.5 h-2.5" /> {cfg.label}
+                </span>
+                {assignment.is_reviewed && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-xs font-medium">
+                    <CheckCircle className="w-2.5 h-2.5" /> Reviewed
+                  </span>
+                )}
+                {assignment.is_published && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium">
+                    <Send className="w-2.5 h-2.5" /> Published
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {assignment.status === "COMPLETED" && (
+                <button onClick={() => onView(assignment)}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">
+                  <Eye className="w-3.5 h-3.5" /> View
+                </button>
+              )}
+              {assignment.status === "FAILED" && (
+                <button onClick={() => onRetry(assignment)}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium transition-colors">
+                  <Upload className="w-3.5 h-3.5" /> Retry
+                </button>
+              )}
+              <button onClick={() => onDelete(assignment)} title="Delete"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {assignment.status === "FAILED" && assignment.error_message && (
+            <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-red-50 border border-red-100">
+              <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-600 leading-relaxed">{assignment.error_message}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
-
-    <div className="flex items-center gap-3 shrink-0 sm:ml-4">
-      <StatusBadge status={assignment.status} />
-      {assignment.status === "COMPLETED" && (
-        <button onClick={() => onViewDetails(assignment)}
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors whitespace-nowrap">
-          <Eye className="w-4 h-4" /> View Details
-        </button>
-      )}
-      {/* ✅ CHANGED: Re-upload for FAILED — opens create modal with name prefilled */}
-      {assignment.status === "FAILED" && (
-        <button onClick={() => onReupload(assignment)}
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors whitespace-nowrap">
-          <Upload className="w-4 h-4" /> Retry
-        </button>
-      )}
-      {assignment.status === "PENDING" && (
-        <button disabled
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-yellow-400 text-white text-sm font-medium opacity-70 cursor-not-allowed whitespace-nowrap">
-          <Loader className="w-4 h-4 animate-spin" /> Processing
-        </button>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 const LoadingSkeleton = () => (
-  <div className="grid gap-3">
+  <div className="space-y-0">
     {[1, 2, 3].map((i) => (
-      <div key={i} className="bg-white border border-gray-200 rounded-xl px-4 py-3 animate-pulse">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-200 rounded-lg" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-1/3" />
+      <div key={i} className="flex gap-4">
+        <div className="flex flex-col items-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+          {i < 3 && <div className="w-0.5 flex-1 bg-gray-100 mt-1" />}
+        </div>
+        <div className="flex-1 pb-6">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
             <div className="h-3 bg-gray-200 rounded w-1/4" />
           </div>
         </div>
@@ -90,48 +128,92 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-// ✅ CHANGED: accepts onReupload prop from UploadPage
 const RecentAssignments = ({ refreshTrigger, onReupload }) => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
+  const [activeTab, setActiveTab] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchAssignments = async () => {
+  // ✅ FIXED: useCallback with correct deps so it always has fresh values
+  const fetchAssignments = useCallback(async (pg) => {
+    setLoading(true);
+    setError("");
     try {
-      setLoading(true);
-      setError("");
-      const res = await api.get("/teacher/assignments/");
+      const params = { page: pg, pageSize: PAGE_SIZE, sortBy: "latest" };
+      if (activeTab) params.statusFilter = activeTab;
+      const res = await getAssignments(params);
       setAssignments(res.data?.data?.assignments ?? []);
-      setPage(1);
+      setPagination(res.data?.data?.pagination ?? null);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load assignments.");
+      setError(err.response?.data?.message || "Failed to load.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]); // ✅ activeTab is the only external dep
 
+  // ✅ FIXED: reset to page 1 when tab or refreshTrigger changes, then fetch
   useEffect(() => {
-    fetchAssignments();
-  }, [refreshTrigger]);
+    setPage(1);
+    fetchAssignments(1);
+  }, [activeTab, refreshTrigger]); // ✅ refreshTrigger included so new uploads show up
 
-  const handleViewDetails = (assignment) => {
-    navigate(`/assignment/${assignment.assignment_id}`);
+  // ✅ FIXED: fetch when page changes (but only when page > 0)
+  useEffect(() => {
+    fetchAssignments(page);
+  }, [page, fetchAssignments]);
+
+  const handleView = (a) => navigate(`/assignment/${a.assignment_id}`);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteAssignment(deleteTarget.assignment_id);
+      toast.success(`"${deleteTarget.pdf_file_name}" deleted.`);
+      setDeleteTarget(null);
+      setPage(1);
+      fetchAssignments(1);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  const totalPages = Math.ceil(assignments.length / PAGE_SIZE);
-  const start = (page - 1) * PAGE_SIZE;
-  const paginatedAssignments = assignments.slice(start, start + PAGE_SIZE);
+  const totalPages = pagination?.total_pages ?? 1;
+  const totalCount = pagination?.total_count ?? assignments.length;
 
   return (
-    <section className="mb-16">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-bold text-gray-900">Recent Assignments</h2>
-        <button onClick={fetchAssignments}
-          className="inline-flex items-center gap-2 h-8 px-3 rounded-md text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors">
-          <RefreshCw className="w-4 h-4" /> Refresh
+    <section>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Recent Uploads</h2>
+          <p className="text-sm text-gray-400 mt-0.5">Track your uploaded assignment status</p>
+        </div>
+        <button onClick={() => fetchAssignments(page)}
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors self-start">
+          <RefreshCw className="w-3 h-3" /> Refresh
         </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1.5 mb-5 p-1 bg-gray-100 rounded-xl w-fit">
+        {TABS.map((tab) => (
+          <button key={tab.value} onClick={() => setActiveTab(tab.value)}
+            className={`h-8 px-4 rounded-lg text-xs font-medium transition-all ${
+              activeTab === tab.value
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -142,35 +224,43 @@ const RecentAssignments = ({ refreshTrigger, onReupload }) => {
           <p className="text-red-500 text-sm">{error}</p>
         </div>
       ) : assignments.length === 0 ? (
-        <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-gray-200">
-          <p className="text-gray-400 text-sm">No assignments created yet.</p>
+        <div className="flex flex-col items-center justify-center h-32 rounded-xl border border-dashed border-gray-200">
+          <FileText className="w-6 h-6 text-gray-300 mb-1.5" />
+          <p className="text-gray-400 text-sm">No assignments found</p>
         </div>
       ) : (
         <>
-          <div className="grid gap-3">
-            {paginatedAssignments.map((a) => (
-              <AssignmentRow
-                key={a.assignment_id}
-                assignment={a}
-                onReupload={onReupload} // ✅ passed from UploadPage
-                onViewDetails={handleViewDetails}
+          <div>
+            {assignments.map((a, i) => (
+              <TimelineItem key={a.assignment_id} assignment={a}
+                onView={handleView}
+                onRetry={onReupload}
+                onDelete={setDeleteTarget}
+                isLast={i === assignments.length - 1}
               />
             ))}
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <p className="text-sm text-gray-500">
-                Showing {start + 1}–{Math.min(start + PAGE_SIZE, assignments.length)} of {assignments.length}
+            <div className="flex items-center justify-between mt-2 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-400">
+                Page {page} of {totalPages} · {totalCount} total
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-sm text-gray-600 font-medium">{page} / {totalPages}</span>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .slice(Math.max(0, page - 3), Math.min(totalPages, page + 2))
+                  .map((p) => (
+                    <button key={p} onClick={() => setPage(p)}
+                      className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                        p === page ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50"
+                      }`}>{p}</button>
+                  ))}
                 <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -178,6 +268,19 @@ const RecentAssignments = ({ refreshTrigger, onReupload }) => {
           )}
         </>
       )}
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <ConfirmDialog
+            title="Delete Assignment"
+            message={`Are you sure you want to delete "${deleteTarget.pdf_file_name}"? This cannot be undone.`}
+            confirmLabel="Delete" confirmStyle="danger"
+            isLoading={isDeleting}
+            onConfirm={handleDelete}
+            onCancel={() => setDeleteTarget(null)}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 };

@@ -1,89 +1,46 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Award, Calendar, Eye, ArrowRight, X, Loader, AlertCircle, RefreshCw, Pencil, ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
-// ✅ ADDED: KaTeX for LaTeX rendering
-import { InlineMath, BlockMath } from "react-katex";
-import "katex/dist/katex.min.css";
+import {
+  Award, Calendar, Eye, ArrowRight, X, Loader, AlertCircle,
+  RefreshCw, Pencil, ChevronDown, ChevronUp, CheckCircle,
+  Trash2, Send, CalendarClock, CheckCircle2,
+} from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import useScrollLock from "../../../hooks/useScrollLock";
-import api from "../../../services/api";
+import StatusBadge from "../../../components/common/StatusBadge/StatusBadge";
+import MathText from "../../../components/common/MathText/MathText";
+import ConfirmDialog from "../../../components/common/ConfirmDialog/ConfirmDialog";
+import { useToast } from "../../../components/common/Toast/Toast";
+import { formatDate } from "../../../utils/formatDate";
+import {
+  getAssignments, getAssignmentDetail, updateAssignment,
+  deleteAssignment, markReviewed, publishAssignment,
+} from "../../../services/teacherService";
 
 const SHOW_LIMIT = 5;
 const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard"];
 
-// ✅ ADDED: MathText component — same as StudentAssignmentDetail
-const MathText = ({ text }) => {
-  if (!text) return null;
-  try {
-    const blockParts = text.split(/(\$\$[\s\S]*?\$\$)/g);
-    return (
-      <span>
-        {blockParts.map((part, i) => {
-          if (part.startsWith("$$") && part.endsWith("$$")) {
-            const math = part.slice(2, -2).trim();
-            return <span key={i} className="block my-1"><BlockMath math={math} /></span>;
-          }
-          const inlineParts = part.split(/(\$[^$\n]+?\$)/g);
-          return (
-            <span key={i}>
-              {inlineParts.map((inline, j) => {
-                if (inline.startsWith("$") && inline.endsWith("$") && inline.length > 2) {
-                  const math = inline.slice(1, -1).trim();
-                  return <InlineMath key={j} math={math} />;
-                }
-                return <span key={j}>{inline}</span>;
-              })}
-            </span>
-          );
-        })}
-      </span>
-    );
-  } catch {
-    return <span>{text}</span>;
-  }
-};
-
-const StatusBadge = ({ status }) => {
-  const styles = {
-    COMPLETED: "border-green-200 bg-green-100 text-green-800",
-    PENDING:   "border-yellow-200 bg-yellow-100 text-yellow-800",
-    FAILED:    "border-red-200 bg-red-100 text-red-800",
-  };
-  return (
-    <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${styles[status] ?? "border-gray-200 bg-gray-100 text-gray-800"}`}>
-      {status}
-    </span>
-  );
-};
-
-const formatDate = (isoString) => {
-  if (!isoString) return "-";
-  return new Date(isoString).toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
-  });
-};
-
+/* ─── Edit Assignment Modal ─── */
 const EditAssignmentModal = ({ assignment, onClose, onSaved }) => {
   useScrollLock();
+  const toast = useToast();
   const [questions, setQuestions] = useState([]);
   const [edits, setEdits] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
-    api.get(`/teacher/assignments/${assignment.id}`)
+    getAssignmentDetail(assignment.id)
       .then((res) => {
         const qs = res.data?.data?.questions ?? [];
         setQuestions(qs);
         const initial = {};
         qs.forEach((q) => {
           initial[q.id] = {
-            corrected_final_answer: q.corrected_final_answer ?? "",
-            correction_notes: q.correction_notes ?? "",
+            corrected_final_answer: "",
             difficulty_level: q.Difficulty_Level ?? "Medium",
-            corrected_solution_steps: q.corrected_solution_steps ?? [],
           };
         });
         setEdits(initial);
@@ -103,22 +60,19 @@ const EditAssignmentModal = ({ assignment, onClose, onSaved }) => {
   const handleSave = async () => {
     setIsSaving(true);
     setError("");
-    setSuccess("");
     try {
       const payload = questions.map((q) => ({
         question_id: q.id,
         corrected_final_answer: edits[q.id]?.corrected_final_answer || null,
-        correction_notes: edits[q.id]?.correction_notes || null,
         difficulty_level: edits[q.id]?.difficulty_level || q.Difficulty_Level,
-        corrected_solution_steps: edits[q.id]?.corrected_solution_steps ?? [],
       }));
-      await api.patch(`/teacher/assignments/${assignment.id}`, payload);
-      setSuccess("Assignment updated successfully!");
+      await updateAssignment(assignment.id, payload);
+      toast.success("Assignment updated successfully!");
       onSaved?.();
-      setTimeout(() => onClose(), 1500);
+      setTimeout(() => onClose(), 1200);
     } catch (err) {
       const message = err.response?.data?.message || err.response?.data?.detail;
-      setError(!err.response ? "Network error." : typeof message === "string" ? message : "Failed to save. Please try again.");
+      toast.error(!err.response ? "Network error." : typeof message === "string" ? message : "Failed to save. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -139,11 +93,6 @@ const EditAssignmentModal = ({ assignment, onClose, onSaved }) => {
               <AlertCircle className="w-5 h-5 shrink-0" /><span>{error}</span>
             </div>
           )}
-          {!isLoading && success && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">
-              <CheckCircle className="w-5 h-5 shrink-0" /><span>{success}</span>
-            </div>
-          )}
           {!isLoading && !error && (
             <div className="space-y-3">
               {questions.map((q) => (
@@ -152,7 +101,6 @@ const EditAssignmentModal = ({ assignment, onClose, onSaved }) => {
                     className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">{q.question_no}</span>
-                      {/* ✅ CHANGED: render question with LaTeX */}
                       <p className="text-sm font-medium text-gray-800 truncate">
                         <MathText text={q.question_text} />
                       </p>
@@ -161,13 +109,14 @@ const EditAssignmentModal = ({ assignment, onClose, onSaved }) => {
                   </button>
                   {expandedId === q.id && (
                     <div className="p-4 space-y-4 border-t border-gray-100">
-                      {/* ✅ CHANGED: render AI answer with LaTeX */}
+                      {/* AI Generated Answer (final_answer) */}
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">AI Generated Answer <span className="text-gray-400">(read only)</span></label>
-                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-900">
-                          <MathText text={q.AI_generated_answer} />
+                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-900 whitespace-pre-line">
+                          <MathText text={q.final_answer} />
                         </div>
                       </div>
+                      {/* Corrected Answer */}
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Corrected Answer <span className="text-gray-400 font-normal">(fill only if AI answer is wrong)</span></label>
                         <textarea rows={3} placeholder="Enter the correct answer here..."
@@ -175,13 +124,7 @@ const EditAssignmentModal = ({ assignment, onClose, onSaved }) => {
                           onChange={(e) => setEdit(q.id, "corrected_final_answer", e.target.value)}
                           className="resize-none w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" />
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Correction Notes <span className="text-gray-400 font-normal">(explain what was wrong)</span></label>
-                        <textarea rows={2} placeholder="e.g. AI made an error in step 3..."
-                          value={edits[q.id]?.correction_notes ?? ""}
-                          onChange={(e) => setEdit(q.id, "correction_notes", e.target.value)}
-                          className="resize-none w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" />
-                      </div>
+                      {/* Difficulty Level */}
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Difficulty Level</label>
                         <div className="flex gap-2">
@@ -225,6 +168,67 @@ const EditAssignmentModal = ({ assignment, onClose, onSaved }) => {
   );
 };
 
+/* ─── Publish Modal ─── */
+const PublishModal = ({ assignment, onClose, onPublished }) => {
+  useScrollLock();
+  const toast = useToast();
+  const [deadline, setDeadline] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  const handlePublish = async () => {
+    if (!deadline) { toast.error("Please set a deadline."); return; }
+    setIsPublishing(true);
+    try {
+      await publishAssignment(assignment.id, new Date(deadline).toISOString());
+      toast.success("Assignment published successfully!");
+      onPublished?.();
+      setTimeout(() => onClose(), 1200);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to publish.");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
+      <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-[calc(100%-2rem)] sm:max-w-md p-6">
+        <div className="flex items-start gap-4 mb-4">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+            <Send className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Publish Assignment</h3>
+            <p className="text-sm text-gray-500">Set a deadline for students to submit.</p>
+          </div>
+        </div>
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+          <input
+            type="datetime-local"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex gap-3 justify-end">
+          <button onClick={onClose} disabled={isPublishing}
+            className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 transition-colors disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={handlePublish} disabled={isPublishing || !deadline}
+            className="h-9 px-4 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:pointer-events-none inline-flex items-center gap-2">
+            {isPublishing ? <><Loader className="w-4 h-4 animate-spin" /> Publishing...</> : <><Send className="w-4 h-4" /> Publish</>}
+          </button>
+        </div>
+        <button onClick={onClose} className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition-opacity"><X className="w-4 h-4" /></button>
+      </div>
+    </>
+  );
+};
+
+/* ─── View Details Modal (quick info) ─── */
 const ViewDetailsModal = ({ assignment, onClose }) => {
   useScrollLock();
   return (
@@ -232,16 +236,14 @@ const ViewDetailsModal = ({ assignment, onClose }) => {
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
       <div className="fixed z-50 top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%] bg-white rounded-lg border border-gray-200 shadow-lg w-full max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[85vh] flex flex-col p-0">
         <div className="px-6 pt-6 pb-0">
-          <div className="flex flex-col gap-2 text-center sm:text-left mb-4">
-            <h2 className="text-lg leading-none font-semibold">Assignment Details</h2>
-            <p className="text-sm text-gray-500">{assignment.title}</p>
-          </div>
+          <h2 className="text-lg leading-none font-semibold">Assignment Details</h2>
+          <p className="text-sm text-gray-500 mt-2">{assignment.title}</p>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-2">
             <p className="text-sm"><span className="font-medium">Status:</span> {assignment.status}</p>
-            <p className="text-sm"><span className="font-medium">Total Marks:</span> {assignment.points}</p>
             <p className="text-sm"><span className="font-medium">Created:</span> {assignment.date}</p>
+            <p className="text-sm"><span className="font-medium">Reviewed:</span> {assignment.is_reviewed ? "Yes" : "No"}</p>
             {assignment.error_message && (
               <p className="text-sm text-red-600"><span className="font-medium">Error:</span> {assignment.error_message}</p>
             )}
@@ -258,7 +260,8 @@ const ViewDetailsModal = ({ assignment, onClose }) => {
   );
 };
 
-const ViewAllModal = ({ assignments, onClose, onRetry, onEdit }) => {
+/* ─── View All Modal ─── */
+const ViewAllModal = ({ assignments, onClose, onRetry, onEdit, onDelete }) => {
   useScrollLock();
   const [detailAssignment, setDetailAssignment] = useState(null);
   return (
@@ -276,9 +279,13 @@ const ViewAllModal = ({ assignments, onClose, onRetry, onEdit }) => {
                 <div className="flex flex-col gap-3">
                   <div className="flex-1">
                     <h3 className="text-xl font-medium mb-2">{a.title}</h3>
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-2">
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-2">
                       <StatusBadge status={a.status} />
-                      <span className="flex items-center gap-1"><Award className="w-4 h-4 mr-1 text-orange-500" />{a.points} points</span>
+                      {a.is_reviewed && (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Reviewed
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center text-sm text-gray-500 mt-2">
                       <Calendar className="w-4 h-4 mr-1" />{a.date}
@@ -301,6 +308,10 @@ const ViewAllModal = ({ assignments, onClose, onRetry, onEdit }) => {
                       className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 transition-colors w-full sm:w-auto">
                       <Eye className="w-4 h-4 mr-1" /> View Details
                     </button>
+                    <button onClick={() => { onDelete(a); onClose(); }}
+                      className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-red-600 border border-red-300 hover:bg-red-50 transition-colors w-full sm:w-auto">
+                      <Trash2 className="w-4 h-4" /> Delete
+                    </button>
                   </div>
                 </div>
               </div>
@@ -319,9 +330,10 @@ const ViewAllModal = ({ assignments, onClose, onRetry, onEdit }) => {
   );
 };
 
-const AssignmentCard = ({ assignment, onViewDetails, onRetry, onEdit }) => {
+/* ─── Single Assignment Card ─── */
+const AssignmentCard = ({ assignment, onViewDetails, onRetry, onEdit, onMarkReviewed, onPublish, onDelete }) => {
   const navigate = useNavigate();
-  const { title, status, points, date } = assignment;
+  const { title, status, date, is_reviewed } = assignment;
   return (
     <div className={`flex flex-col gap-6 rounded-xl border p-6 bg-white shadow-lg hover:shadow-xl transition-shadow ${
       status === "COMPLETED" ? "border-l-4 border-l-green-500 border-gray-200" :
@@ -332,9 +344,13 @@ const AssignmentCard = ({ assignment, onViewDetails, onRetry, onEdit }) => {
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <h3 className="text-xl font-medium mb-2">{title}</h3>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-2">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-2">
             <StatusBadge status={status} />
-            <span className="flex items-center gap-1"><Award className="w-4 h-4 mr-1 text-orange-500" />{points} points</span>
+            {is_reviewed && (
+              <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Reviewed
+              </span>
+            )}
           </div>
           <div className="flex items-center text-sm text-gray-500 mt-2">
             <Calendar className="w-4 h-4 mr-1" />{date}
@@ -355,12 +371,25 @@ const AssignmentCard = ({ assignment, onViewDetails, onRetry, onEdit }) => {
           </button>
         )}
         {status === "COMPLETED" && (
-          <button onClick={() => onEdit(assignment)}
-            className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none whitespace-nowrap">
-            <Pencil className="w-4 h-4" /> Edit
-          </button>
+          <>
+            <button onClick={() => onEdit(assignment)}
+              className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none whitespace-nowrap">
+              <Pencil className="w-4 h-4" /> Edit
+            </button>
+            {!is_reviewed && (
+              <button onClick={() => onMarkReviewed(assignment)}
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-md text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors focus:outline-none whitespace-nowrap">
+                <CheckCircle className="w-4 h-4" /> Mark Reviewed
+              </button>
+            )}
+            {is_reviewed && (
+              <button onClick={() => onPublish(assignment)}
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all focus:outline-none whitespace-nowrap">
+                <Send className="w-4 h-4" /> Publish
+              </button>
+            )}
+          </>
         )}
-        {/* ✅ FIXED: COMPLETED navigates to detail page, others open modal */}
         <button
           onClick={() => status === "COMPLETED"
             ? navigate(`/assignment/${assignment.id}`)
@@ -369,33 +398,42 @@ const AssignmentCard = ({ assignment, onViewDetails, onRetry, onEdit }) => {
           className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-md text-sm font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 transition-colors focus:outline-none whitespace-nowrap">
           <Eye className="w-4 h-4 shrink-0" /> View Details
         </button>
+        <button onClick={() => onDelete(assignment)}
+          className="inline-flex items-center justify-center w-11 h-11 rounded-md text-gray-400 border border-gray-200 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+          title="Delete">
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
 };
 
+/* ─── Main: YourAssignments ─── */
 const YourAssignments = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [viewAllOpen, setViewAllOpen] = useState(false);
   const [detailAssignment, setDetailAssignment] = useState(null);
   const [editAssignment, setEditAssignment] = useState(null);
+  const [publishTarget, setPublishTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [assignments, setAssignments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState("");
 
   const fetchAssignments = () => {
     setIsLoading(true);
-    api.get("/teacher/assignments/")
+    getAssignments({ page: 1, pageSize: 20, sortBy: "latest" })
       .then((res) => {
         const raw = res.data?.data?.assignments ?? [];
         setAssignments(raw.map((a) => ({
           id: a.assignment_id,
           title: a.pdf_file_name,
           status: a.status,
-          points: a.total_marks,
           date: formatDate(a.created_at),
           error_message: a.error_message,
-          students: [],
+          is_reviewed: a.is_reviewed ?? false,
         })));
       })
       .catch(() => setApiError("Failed to load assignments. Please try again."))
@@ -406,6 +444,31 @@ const YourAssignments = () => {
 
   const handleRetry = (assignment) => {
     navigate("/upload", { state: { reuploadName: assignment.title } });
+  };
+
+  const handleMarkReviewed = async (assignment) => {
+    try {
+      await markReviewed(assignment.id);
+      toast.success(`"${assignment.title}" marked as reviewed.`);
+      fetchAssignments();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to mark reviewed.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteAssignment(deleteTarget.id);
+      toast.success(`"${deleteTarget.title}" deleted.`);
+      setDeleteTarget(null);
+      fetchAssignments();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const visibleAssignments = assignments.slice(0, SHOW_LIMIT);
@@ -439,6 +502,9 @@ const YourAssignments = () => {
                 onViewDetails={setDetailAssignment}
                 onRetry={handleRetry}
                 onEdit={setEditAssignment}
+                onMarkReviewed={handleMarkReviewed}
+                onPublish={setPublishTarget}
+                onDelete={setDeleteTarget}
               />
             ))}
           </div>
@@ -452,8 +518,28 @@ const YourAssignments = () => {
       )}
 
       {detailAssignment && <ViewDetailsModal assignment={detailAssignment} onClose={() => setDetailAssignment(null)} />}
-      {viewAllOpen && <ViewAllModal assignments={assignments} onClose={() => setViewAllOpen(false)} onRetry={handleRetry} onEdit={setEditAssignment} />}
+      {viewAllOpen && <ViewAllModal assignments={assignments} onClose={() => setViewAllOpen(false)} onRetry={handleRetry} onEdit={setEditAssignment} onDelete={setDeleteTarget} />}
       {editAssignment && <EditAssignmentModal assignment={editAssignment} onClose={() => setEditAssignment(null)} onSaved={fetchAssignments} />}
+
+      <AnimatePresence>
+        {publishTarget && (
+          <PublishModal assignment={publishTarget} onClose={() => setPublishTarget(null)} onPublished={fetchAssignments} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <ConfirmDialog
+            title="Delete Assignment"
+            message={`Are you sure you want to delete "${deleteTarget.title}"? This action cannot be undone.`}
+            confirmLabel="Delete"
+            confirmStyle="danger"
+            isLoading={isDeleting}
+            onConfirm={handleDelete}
+            onCancel={() => setDeleteTarget(null)}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 };

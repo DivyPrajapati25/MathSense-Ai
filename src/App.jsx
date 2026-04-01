@@ -1,9 +1,10 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ToastProvider } from "./components/common/Toast/Toast";
 import Navbar from "./components/layout/Navbar/Navbar";
 import ErrorBoundary from "./components/common/ErrorBoundary/ErrorBoundary";
-import FloatingBetaBanner from "./components/common/FloatingBetaBanner/FloatingBetaBanner";
+// import FloatingBetaBanner from "./components/common/FloatingBetaBanner/FloatingBetaBanner";
 import ScrollToTop from "./components/common/ScrollToTop/ScrollToTop";
 import ProtectedRoute from "./components/common/ProtectedRoute/ProtectedRoute";
 import GuestRoute from "./components/common/GuestRoute/GuestRoute";
@@ -66,7 +67,7 @@ const AppShell = () => {
         </Suspense>
       </main>
 
-      {showNavbar && <FloatingBetaBanner />}
+      {showNavbar}
     </div>
   );
 };
@@ -76,7 +77,9 @@ const App = () => (
     <Router>
       <ScrollToTop />
       <AuthProvider>
-        <AppShell />
+        <ToastProvider>
+          <AppShell />
+        </ToastProvider>
       </AuthProvider>
     </Router>
   </ErrorBoundary>

@@ -27,6 +27,7 @@ const isValidJwt = (token) => {
 
 const clearAuth = () => {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("userData");
 };
 
@@ -56,8 +57,9 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    const persistAuth = useCallback((accessToken, userData) => {
+    const persistAuth = useCallback((accessToken, refreshToken, userData) => {
         localStorage.setItem("authToken", accessToken);
+        if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
         localStorage.setItem("userData", JSON.stringify(userData));
         setUser(userData);
     }, []);
@@ -86,7 +88,7 @@ export const AuthProvider = ({ children }) => {
             email: data.email,
             role: data.role,
         };
-        persistAuth(data.access_token, userData);
+        persistAuth(data.access_token, data.refresh_token, userData);
         if (data.role === "STUDENT") {
             navigate("/student", { replace: true });
         } else {
@@ -104,7 +106,7 @@ export const AuthProvider = ({ children }) => {
             email: data.email,
             role: data.role,
         };
-        persistAuth(data.access_token, userData);
+        persistAuth(data.access_token, data.refresh_token, userData);
         if (data.role === "TEACHER") {
             navigate("/", { replace: true });
         } else {

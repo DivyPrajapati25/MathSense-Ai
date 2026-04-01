@@ -6,36 +6,40 @@ import ClassroomPlus from "./ClassroomPlus";
 import PerformanceTrends from "./PerformanceTrends";
 import TopicPerformance from "./TopicPerformance";
 import PredictiveInsights from "./PredictiveInsights";
+import { getStandardDetail } from "../../services/teacherService";
 import api from "../../services/api";
 
 const InsightsPage = () => {
   const [standards, setStandards] = useState([]);
   const [selectedStandard, setSelectedStandard] = useState(null);
   const [period, setPeriod] = useState("month");
+  const [periodValue, setPeriodValue] = useState(1);
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ CHANGED: use /student/standards → returns ALL classes always
+  // ✅ FIXED: use /student/standards → returns ALL classes 8-12 always
+  // No longer depends on teacher having assignments in that class
   useEffect(() => {
     api.get("/student/standards").then((res) => {
-      const stds = res.data?.data?.standards ?? [];
+      const stds = (res.data?.data?.standards ?? []).map((s) => ({
+        id: s.id,           // ✅ student/standards uses "id" not "standard_id"
+        standard: s.standard,
+      }));
       setStandards(stds);
       if (stds.length > 0) setSelectedStandard(stds[0]);
     }).catch(() => {});
   }, []);
 
-  // ✅ Fetch dashboard data when standard OR period changes
-  // Note: teacher/dashboard uses standard_id but student/standards uses id
+  // ✅ Fetch dashboard data when standard, period, or periodValue changes
   useEffect(() => {
     if (!selectedStandard) return;
     setIsLoading(true);
-    api.get(`/teacher/dashboard/${selectedStandard.id}`, {
-      params: { trend_type: period, value: 1 }
-    }).then((res) => {
-      setDashboardData(res.data?.data ?? null);
-    }).catch(() => setDashboardData(null))
+    getStandardDetail(selectedStandard.id, { trendType: period, value: periodValue })
+      .then((res) => {
+        setDashboardData(res.data?.data ?? null);
+      }).catch(() => setDashboardData(null))
       .finally(() => setIsLoading(false));
-  }, [selectedStandard, period]);
+  }, [selectedStandard, period, periodValue]);
 
   return (
     <motion.div
@@ -51,6 +55,8 @@ const InsightsPage = () => {
           onStandardChange={setSelectedStandard}
           period={period}
           onPeriodChange={setPeriod}
+          periodValue={periodValue}
+          onPeriodValueChange={setPeriodValue}
         />
       </motion.div>
 
