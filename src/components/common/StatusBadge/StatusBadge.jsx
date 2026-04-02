@@ -5,13 +5,20 @@ const STATUS_STYLES = {
   FAILED:     "border-red-200 bg-red-100 text-red-800",
 };
 
+const STATUS_LABELS = {
+  COMPLETED: "Created",
+  PENDING: "Pending",
+  PROCESSING: "Processing",
+  FAILED: "Failed",
+};
+
 const StatusBadge = ({ status, className = "" }) => (
   <span
     className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${
       STATUS_STYLES[status] ?? "border-gray-200 bg-gray-100 text-gray-800"
     } ${className}`}
   >
-    {status}
+    {STATUS_LABELS[status] || status}
   </span>
 );
 

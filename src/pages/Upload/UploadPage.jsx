@@ -1,20 +1,16 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom"; // ✅ added
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { staggerContainer, sectionVariants } from "../../utils/animations";
 import UploadHero from "./UploadHero";
 import CreateNewAssignment from "./CreateNewAssignment";
-// import UploadZone from "./AssignmentUploadZone";
-// import UnitTeachingMaterials from "./UnitTeachingMaterials";
 import RecentAssignments from "./RecentAssignments";
 
 const UploadPage = () => {
-  const location = useLocation(); // ✅ read navigation state
+  const location = useLocation();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  // ✅ CHANGED: read reuploadName from navigation state (passed by YourAssignments retry)
   const [reuploadName, setReuploadName] = useState(location.state?.reuploadName ?? "");
 
-  // ✅ Clear navigation state after reading so refresh doesn't re-open modal
   useEffect(() => {
     if (location.state?.reuploadName) {
       window.history.replaceState({}, "");
@@ -44,14 +40,6 @@ const UploadPage = () => {
           onClearReupload={() => setReuploadName("")}
         />
       </motion.div>
-
-      {/* <motion.div variants={sectionVariants}>
-        <UploadZone />
-      </motion.div> */}
-
-      {/* <motion.div variants={sectionVariants}>
-        <UnitTeachingMaterials />
-      </motion.div> */}
 
       <motion.div variants={sectionVariants}>
         <RecentAssignments refreshTrigger={refreshTrigger} onReupload={(a) => setReuploadName(a.pdf_file_name)} />

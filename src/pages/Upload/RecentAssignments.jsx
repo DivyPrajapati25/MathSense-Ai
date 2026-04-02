@@ -26,14 +26,14 @@ const timeAgo = (iso) => {
 };
 
 const STATUS_CONFIG = {
-  COMPLETED: { icon: CheckCircle, color: "text-green-500", bg: "bg-green-50", border: "border-green-200", label: "Completed" },
-  FAILED:    { icon: XCircle,     color: "text-red-500",   bg: "bg-red-50",   border: "border-red-200",   label: "Failed" },
+  COMPLETED: { icon: CheckCircle, color: "text-green-500 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/20", border: "border-green-200 dark:border-green-800", label: "Created" },
+  FAILED:    { icon: XCircle,     color: "text-red-500 dark:text-red-400",   bg: "bg-red-50 dark:bg-red-900/20",   border: "border-red-200 dark:border-red-800",   label: "Failed" },
 };
 
 const TABS = [
-  { label: "All",       value: "" },
-  { label: "Completed", value: "COMPLETED" },
-  { label: "Failed",    value: "FAILED" },
+  { label: "All",     value: "" },
+  { label: "Created", value: "COMPLETED" },
+  { label: "Failed",  value: "FAILED" },
 ];
 
 const TimelineItem = ({ assignment, onView, onRetry, onDelete, isLast }) => {
@@ -46,31 +46,31 @@ const TimelineItem = ({ assignment, onView, onRetry, onDelete, isLast }) => {
         <div className={`w-8 h-8 rounded-full ${cfg.bg} ${cfg.border} border-2 flex items-center justify-center z-10`}>
           <StatusIcon className={`w-3.5 h-3.5 ${cfg.color}`} />
         </div>
-        {!isLast && <div className="w-0.5 flex-1 bg-gray-200 mt-1" />}
+        {!isLast && <div className="w-0.5 flex-1 bg-[var(--color-border)] mt-1" />}
       </div>
 
       <div className="flex-1 pb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-all">
+        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-4 hover:shadow-sm transition-all">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                <h4 className="font-medium text-sm text-gray-900 truncate">{assignment.pdf_file_name}</h4>
+                <FileText className="w-4 h-4 text-[var(--color-text-muted)] shrink-0" />
+                <h4 className="font-medium text-sm text-[var(--color-text-primary)] truncate">{assignment.pdf_file_name}</h4>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="text-xs text-[var(--color-text-muted)] flex items-center gap-1">
                   <Clock className="w-3 h-3" /> {timeAgo(assignment.created_at)}
                 </span>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.bg} ${cfg.color}`}>
                   <CircleDot className="w-2.5 h-2.5" /> {cfg.label}
                 </span>
                 {assignment.is_reviewed && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
                     <CheckCircle className="w-2.5 h-2.5" /> Reviewed
                   </span>
                 )}
                 {assignment.is_published && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium">
                     <Send className="w-2.5 h-2.5" /> Published
                   </span>
                 )}
@@ -91,16 +91,16 @@ const TimelineItem = ({ assignment, onView, onRetry, onDelete, isLast }) => {
                 </button>
               )}
               <button onClick={() => onDelete(assignment)} title="Delete"
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
           {assignment.status === "FAILED" && assignment.error_message && (
-            <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-red-50 border border-red-100">
+            <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
               <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-600 leading-relaxed">{assignment.error_message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed">{assignment.error_message}</p>
             </div>
           )}
         </div>
@@ -114,13 +114,13 @@ const LoadingSkeleton = () => (
     {[1, 2, 3].map((i) => (
       <div key={i} className="flex gap-4">
         <div className="flex flex-col items-center shrink-0">
-          <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
-          {i < 3 && <div className="w-0.5 flex-1 bg-gray-100 mt-1" />}
+          <div className="w-8 h-8 rounded-full bg-[var(--color-bg-tertiary)] animate-pulse" />
+          {i < 3 && <div className="w-0.5 flex-1 bg-[var(--color-border)] mt-1" />}
         </div>
         <div className="flex-1 pb-6">
-          <div className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
-            <div className="h-3 bg-gray-200 rounded w-1/4" />
+          <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-4 animate-pulse">
+            <div className="h-4 bg-[var(--color-bg-tertiary)] rounded w-1/3 mb-2" />
+            <div className="h-3 bg-[var(--color-bg-tertiary)] rounded w-1/4" />
           </div>
         </div>
       </div>
@@ -140,50 +140,31 @@ const RecentAssignments = ({ refreshTrigger, onReupload }) => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // ✅ FIXED: useCallback with correct deps so it always has fresh values
   const fetchAssignments = useCallback(async (pg) => {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       const params = { page: pg, pageSize: PAGE_SIZE, sortBy: "latest" };
       if (activeTab) params.statusFilter = activeTab;
       const res = await getAssignments(params);
       setAssignments(res.data?.data?.assignments ?? []);
       setPagination(res.data?.data?.pagination ?? null);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to load.");
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab]); // ✅ activeTab is the only external dep
+    } catch (err) { setError(err.response?.data?.message || "Failed to load."); }
+    finally { setLoading(false); }
+  }, [activeTab]);
 
-  // ✅ FIXED: reset to page 1 when tab or refreshTrigger changes, then fetch
-  useEffect(() => {
-    setPage(1);
-    fetchAssignments(1);
-  }, [activeTab, refreshTrigger]); // ✅ refreshTrigger included so new uploads show up
-
-  // ✅ FIXED: fetch when page changes (but only when page > 0)
-  useEffect(() => {
-    fetchAssignments(page);
-  }, [page, fetchAssignments]);
+  useEffect(() => { setPage(1); fetchAssignments(1); }, [activeTab, refreshTrigger]);
+  useEffect(() => { fetchAssignments(page); }, [page, fetchAssignments]);
 
   const handleView = (a) => navigate(`/assignment/${a.assignment_id}`);
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
       await deleteAssignment(deleteTarget.assignment_id);
       toast.success(`"${deleteTarget.pdf_file_name}" deleted.`);
-      setDeleteTarget(null);
-      setPage(1);
-      fetchAssignments(1);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to delete.");
-    } finally {
-      setIsDeleting(false);
-    }
+      setDeleteTarget(null); setPage(1); fetchAssignments(1);
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to delete."); }
+    finally { setIsDeleting(false); }
   };
 
   const totalPages = pagination?.total_pages ?? 1;
@@ -193,74 +174,62 @@ const RecentAssignments = ({ refreshTrigger, onReupload }) => {
     <section>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Recent Uploads</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Track your uploaded assignment status</p>
+          <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">Recent Uploads</h2>
+          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Track your uploaded assignment status</p>
         </div>
         <button onClick={() => fetchAssignments(page)}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors self-start">
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] transition-colors self-start">
           <RefreshCw className="w-3 h-3" /> Refresh
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1.5 mb-5 p-1 bg-gray-100 rounded-xl w-fit">
+      <div className="flex items-center gap-1.5 mb-5 p-1 bg-[var(--color-bg-secondary)] rounded-xl w-fit">
         {TABS.map((tab) => (
           <button key={tab.value} onClick={() => setActiveTab(tab.value)}
             className={`h-8 px-4 rounded-lg text-xs font-medium transition-all ${
               activeTab === tab.value
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-[var(--color-bg-card)] text-[var(--color-text-primary)] shadow-sm"
+                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
             }`}>
             {tab.label}
           </button>
         ))}
       </div>
 
-      {loading ? (
-        <LoadingSkeleton />
-      ) : error ? (
-        <div className="flex items-center justify-center gap-3 h-32 rounded-xl border border-dashed border-red-200 bg-red-50">
+      {loading ? <LoadingSkeleton />
+      : error ? (
+        <div className="flex items-center justify-center gap-3 h-32 rounded-xl border border-dashed border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
           <AlertCircle className="w-5 h-5 text-red-500" />
-          <p className="text-red-500 text-sm">{error}</p>
+          <p className="text-red-500 dark:text-red-400 text-sm">{error}</p>
         </div>
       ) : assignments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-32 rounded-xl border border-dashed border-gray-200">
-          <FileText className="w-6 h-6 text-gray-300 mb-1.5" />
-          <p className="text-gray-400 text-sm">No assignments found</p>
+        <div className="flex flex-col items-center justify-center h-32 rounded-xl border border-dashed border-[var(--color-border)]">
+          <FileText className="w-6 h-6 text-[var(--color-text-muted)] mb-1.5" />
+          <p className="text-[var(--color-text-muted)] text-sm">No assignments found</p>
         </div>
       ) : (
         <>
           <div>
             {assignments.map((a, i) => (
-              <TimelineItem key={a.assignment_id} assignment={a}
-                onView={handleView}
-                onRetry={onReupload}
-                onDelete={setDeleteTarget}
-                isLast={i === assignments.length - 1}
-              />
+              <TimelineItem key={a.assignment_id} assignment={a} onView={handleView} onRetry={onReupload} onDelete={setDeleteTarget} isLast={i === assignments.length - 1} />
             ))}
           </div>
-
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-2 pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-400">
-                Page {page} of {totalPages} · {totalCount} total
-              </p>
+            <div className="flex items-center justify-between mt-2 pt-4 border-t border-[var(--color-border)]">
+              <p className="text-xs text-[var(--color-text-muted)]">Page {page} of {totalPages} · {totalCount} total</p>
               <div className="flex items-center gap-1.5">
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .slice(Math.max(0, page - 3), Math.min(totalPages, page + 2))
-                  .map((p) => (
-                    <button key={p} onClick={() => setPage(p)}
-                      className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
-                        p === page ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50"
-                      }`}>{p}</button>
-                  ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map((p) => (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                      p === page ? "bg-blue-600 text-white shadow-sm" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+                    }`}>{p}</button>
+                ))}
                 <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -271,14 +240,9 @@ const RecentAssignments = ({ refreshTrigger, onReupload }) => {
 
       <AnimatePresence>
         {deleteTarget && (
-          <ConfirmDialog
-            title="Delete Assignment"
+          <ConfirmDialog title="Delete Assignment"
             message={`Are you sure you want to delete "${deleteTarget.pdf_file_name}"? This cannot be undone.`}
-            confirmLabel="Delete" confirmStyle="danger"
-            isLoading={isDeleting}
-            onConfirm={handleDelete}
-            onCancel={() => setDeleteTarget(null)}
-          />
+            confirmLabel="Delete" confirmStyle="danger" isLoading={isDeleting} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
         )}
       </AnimatePresence>
     </section>
