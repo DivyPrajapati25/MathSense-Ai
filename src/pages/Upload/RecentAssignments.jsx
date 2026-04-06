@@ -84,12 +84,12 @@ const TimelineItem = ({ assignment, onView, onRetry, onDelete, isLast }) => {
                   <Eye className="w-3.5 h-3.5" /> View
                 </button>
               )}
-              {assignment.status === "FAILED" && (
+              {/* {assignment.status === "FAILED" && (
                 <button onClick={() => onRetry(assignment)}
                   className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium transition-colors">
                   <Upload className="w-3.5 h-3.5" /> Retry
                 </button>
-              )}
+              )} */}
               <button onClick={() => onDelete(assignment)} title="Delete"
                 className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100">
                 <Trash2 className="w-3.5 h-3.5" />

@@ -9,19 +9,32 @@ import StatusBadge from "../../components/common/StatusBadge/StatusBadge";
 import { formatDate } from "../../utils/formatDate";
 
 /* ─── Stat Card ─── */
-export const StatCard = ({ icon: Icon, label, value, color }) => {
+export const StatCard = ({ icon: Icon, label, value, color, onClick }) => {
   const palette = {
-    blue:  { bg: "bg-blue-50 dark:bg-blue-900/20",  icon: "text-blue-600 dark:text-blue-400",  val: "text-blue-700 dark:text-blue-300"  },
-    amber: { bg: "bg-amber-50 dark:bg-amber-900/20", icon: "text-amber-500 dark:text-amber-400", val: "text-amber-600 dark:text-amber-300" },
-    green: { bg: "bg-green-50 dark:bg-green-900/20", icon: "text-green-600 dark:text-green-400", val: "text-green-700 dark:text-green-300" },
-    indigo: { bg: "bg-indigo-50 dark:bg-indigo-900/20", icon: "text-indigo-600 dark:text-indigo-400", val: "text-indigo-700 dark:text-indigo-300" },
+    blue:   { bg: "bg-blue-50 dark:bg-blue-900/20",   icon: "text-blue-600 dark:text-blue-400",   val: "text-blue-700 dark:text-blue-300",   glow: "hover:shadow-blue-200/50 dark:hover:shadow-blue-900/30",   ring: "hover:ring-blue-200 dark:hover:ring-blue-800"   },
+    amber:  { bg: "bg-amber-50 dark:bg-amber-900/20",  icon: "text-amber-500 dark:text-amber-400",  val: "text-amber-600 dark:text-amber-300",  glow: "hover:shadow-amber-200/50 dark:hover:shadow-amber-900/30",  ring: "hover:ring-amber-200 dark:hover:ring-amber-800"  },
+    green:  { bg: "bg-green-50 dark:bg-green-900/20",  icon: "text-green-600 dark:text-green-400",  val: "text-green-700 dark:text-green-300",  glow: "hover:shadow-green-200/50 dark:hover:shadow-green-900/30",  ring: "hover:ring-green-200 dark:hover:ring-green-800"  },
+    indigo: { bg: "bg-indigo-50 dark:bg-indigo-900/20", icon: "text-indigo-600 dark:text-indigo-400", val: "text-indigo-700 dark:text-indigo-300", glow: "hover:shadow-indigo-200/50 dark:hover:shadow-indigo-900/30", ring: "hover:ring-indigo-200 dark:hover:ring-indigo-800" },
   };
   const c = palette[color] ?? palette.blue;
   return (
-    <motion.div variants={cardVariants}
-      className="bg-[var(--color-bg-card)] rounded-xl border border-[var(--color-border)] p-4 sm:p-5 hover:shadow-sm transition-shadow">
-      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${c.bg} flex items-center justify-center mb-2 sm:mb-3`}>
-        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${c.icon}`} />
+    <motion.div
+      variants={cardVariants}
+      whileHover={{ y: -6, scale: 1.03, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`bg-[var(--color-bg-card)] rounded-xl border border-[var(--color-border)] p-4 sm:p-5 transition-all duration-300 group
+        hover:shadow-lg ${c.glow} hover:ring-1 ${c.ring} hover:border-transparent ${onClick ? "cursor-pointer" : ""}`}
+    >
+      <div className="flex items-start justify-between mb-2 sm:mb-3">
+        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${c.bg} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
+          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${c.icon} transition-transform duration-300 group-hover:rotate-[-8deg]`} />
+        </div>
+        {onClick && (
+          <span className="text-[10px] font-medium text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1 flex items-center gap-0.5">
+            View <ChevronRight className="w-3 h-3" />
+          </span>
+        )}
       </div>
       <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mb-0.5 sm:mb-1 truncate">{label}</p>
       <p className={`text-xl sm:text-2xl font-bold ${c.val}`}>{value}</p>
@@ -31,15 +44,17 @@ export const StatCard = ({ icon: Icon, label, value, color }) => {
 
 /* ─── Class Filter Card ─── */
 export const ClassCard = ({ standard, isSelected, assignmentCount, onClick }) => (
-  <button onClick={onClick}
-    className={`w-full text-left rounded-xl border p-4 transition-all hover:shadow-sm ${
+  <motion.button onClick={onClick}
+    whileHover={{ y: -4, scale: 1.02, transition: { type: "spring", stiffness: 400, damping: 22 } }}
+    whileTap={{ scale: 0.97 }}
+    className={`w-full text-left rounded-xl border p-4 transition-all duration-300 group hover:shadow-md ${
       isSelected
         ? "border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-100 dark:ring-blue-900/40"
         : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-blue-200 dark:hover:border-blue-700"
     }`}>
     <div className="flex items-start justify-between mb-3">
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isSelected ? "bg-blue-100 dark:bg-blue-900/40" : "bg-[var(--color-bg-secondary)]"}`}>
-        <GraduationCap className={`w-4 h-4 ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-[var(--color-text-secondary)]"}`} />
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${isSelected ? "bg-blue-100 dark:bg-blue-900/40" : "bg-[var(--color-bg-secondary)]"}`}>
+        <GraduationCap className={`w-4 h-4 transition-transform duration-300 group-hover:rotate-[-6deg] ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-[var(--color-text-secondary)]"}`} />
       </div>
       {isSelected && (
         <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full">Active</span>
@@ -49,7 +64,7 @@ export const ClassCard = ({ standard, isSelected, assignmentCount, onClick }) =>
       Class {standard.standard}
     </p>
     <p className="text-xs text-[var(--color-text-muted)]">{assignmentCount} assignment{assignmentCount !== 1 ? "s" : ""}</p>
-  </button>
+  </motion.button>
 );
 
 /* ─── Class Section Skeleton ─── */
@@ -79,7 +94,9 @@ export const AssignmentRow = ({ assignment, allStandards, onView, onEdit, onRevi
   const canPublish = assignment.is_reviewed && !isPublished;
 
   return (
-    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--color-bg-card)] border border-[var(--color-border)] border-l-4 ${statusBorder} rounded-xl px-4 py-3.5 hover:shadow-sm transition-all group`}>
+    <motion.div
+      whileHover={{ y: -2, x: 2, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--color-bg-card)] border border-[var(--color-border)] border-l-4 ${statusBorder} rounded-xl px-4 py-3.5 hover:shadow-md hover:border-[var(--color-border)] transition-all duration-300 group`}>
       {/* Left */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg flex items-center justify-center shrink-0">
@@ -172,7 +189,7 @@ export const AssignmentRow = ({ assignment, allStandards, onView, onEdit, onRevi
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

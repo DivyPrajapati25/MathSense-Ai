@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock, CheckCircle, XCircle, Loader,
@@ -20,6 +21,7 @@ const TABS = [
 
 const StudentGrading = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("not_attempted");
   const [assignmentsData, setAssignmentsData] = useState(null);
   const [processingIds, setProcessingIds] = useState(new Set()); // IDs still being processed
@@ -76,6 +78,30 @@ const StudentGrading = () => {
     try {
       const res = await getAssignmentsList({ page: currentPage, pageSize: 10 });
       const data = res.data?.data ?? null;
+
+      // ── Client-side deadline safety check ──
+      // Move any "missed" assignments whose deadline is still in the future
+      // back into the "not_attempted" list (API may miscategorize).
+      if (data?.missed?.assignments?.length) {
+        const now = new Date();
+        const reallyMissed = [];
+        const movedToPending = [];
+        for (const a of data.missed.assignments) {
+          if (a.deadline && new Date(a.deadline) > now) {
+            movedToPending.push(a);
+          } else {
+            reallyMissed.push(a);
+          }
+        }
+        if (movedToPending.length > 0) {
+          data.missed.assignments = reallyMissed;
+          data.missed.total = (data.missed.total ?? 0) - movedToPending.length;
+          if (!data.not_attempted) data.not_attempted = { assignments: [], total: 0 };
+          data.not_attempted.assignments = [...(data.not_attempted.assignments ?? []), ...movedToPending];
+          data.not_attempted.total = (data.not_attempted.total ?? 0) + movedToPending.length;
+        }
+      }
+
       setAssignmentsData(data);
       // Check processing status for attempted assignments
       await checkProcessingStatuses(data?.attempted?.assignments);
@@ -86,6 +112,14 @@ const StudentGrading = () => {
       setIsRefreshing(false);
     }
   }, [currentPage, checkProcessingStatuses]);
+
+  // Read ?tab= query param on mount
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["not_attempted", "attempted", "missed"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // Fetch on mount and when page changes
   useEffect(() => {

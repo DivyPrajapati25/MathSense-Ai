@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -40,6 +40,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
+  const assignmentSectionRef = useRef(null);
 
   const [allStandards, setAllStandards] = useState([]);
   const [standardsLoading, setStandardsLoading] = useState(true);
@@ -127,6 +128,39 @@ const Dashboard = () => {
   const totalCount  = pagination?.total_count ?? 0;
   const activeClass = allStandards.find((s) => s.id === selectedStandardId);
   const hasFilters  = statusFilter || isReviewedFilter || isPublishedFilter || sortBy !== "latest";
+
+  /* ── Stat Card click → scroll & filter ── */
+  const scrollToAssignments = () => {
+    setTimeout(() => {
+      assignmentSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  const handleStatClick = (type) => {
+    setPage(1);
+    setStatusFilter("");
+    setSortBy("latest");
+    switch (type) {
+      case "total":
+        setIsReviewedFilter("");
+        setIsPublishedFilter("");
+        break;
+      case "pending":
+        setIsReviewedFilter("false");
+        setIsPublishedFilter("");
+        break;
+      case "reviewed":
+        setIsReviewedFilter("true");
+        setIsPublishedFilter("");
+        break;
+      case "published":
+        setIsReviewedFilter("");
+        setIsPublishedFilter("true");
+        break;
+      default: break;
+    }
+    scrollToAssignments();
+  };
   const classesWithAssignments = allStandards.filter((s) => (classCounts[s.id] ?? 0) > 0);
 
   const handleView = (a) => navigate(`/assignment/${a.assignment_id}`);
@@ -177,10 +211,10 @@ const Dashboard = () => {
 
       {/* Stat Cards */}
       <motion.div variants={staggerContainer} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard icon={BookOpen}    label="Total Assignments" value={statCounts.total}     color="blue"   />
-        <StatCard icon={Clock}       label="Pending Review"    value={statCounts.pending}   color="amber"  />
-        <StatCard icon={CheckCircle} label="Reviewed"          value={statCounts.reviewed}  color="green"  />
-        <StatCard icon={Send}        label="Published"         value={statCounts.published} color="indigo" />
+        <StatCard icon={BookOpen}    label="Total Assignments" value={statCounts.total}     color="blue"   onClick={() => handleStatClick("total")}    />
+        <StatCard icon={Clock}       label="Pending Review"    value={statCounts.pending}   color="amber"  onClick={() => handleStatClick("pending")}  />
+        <StatCard icon={CheckCircle} label="Reviewed"          value={statCounts.reviewed}  color="green"  onClick={() => handleStatClick("reviewed")} />
+        <StatCard icon={Send}        label="Published"         value={statCounts.published} color="indigo" onClick={() => handleStatClick("published")}/>
       </motion.div>
 
       {/* Filter by Class */}
@@ -218,7 +252,7 @@ const Dashboard = () => {
       </div>
 
       {/* Assignment List */}
-      <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-2xl shadow-sm">
+      <div ref={assignmentSectionRef} className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-2xl shadow-sm scroll-mt-6">
         <div className="px-5 py-4 border-b border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">

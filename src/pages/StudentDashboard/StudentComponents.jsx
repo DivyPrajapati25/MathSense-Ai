@@ -26,14 +26,14 @@ export const ScoreBadge = ({ percentage }) => {
   );
 };
 
-/* ─── Stat Card ─── */
-export const StatCard = ({ icon: Icon, label, value, color, delay = 0 }) => {
+/* ─── Stat Card (with hover animations + click) ─── */
+export const StatCard = ({ icon: Icon, label, value, color, delay = 0, onClick }) => {
   const palette = {
-    blue:   { bg: "bg-blue-50 dark:bg-blue-900/20",   icon: "text-blue-600 dark:text-blue-400",   val: "text-blue-700 dark:text-blue-300"   },
-    green:  { bg: "bg-green-50 dark:bg-green-900/20",  icon: "text-green-600 dark:text-green-400",  val: "text-green-700 dark:text-green-300"  },
-    purple: { bg: "bg-purple-50 dark:bg-purple-900/20", icon: "text-purple-600 dark:text-purple-400", val: "text-purple-700 dark:text-purple-300" },
-    orange: { bg: "bg-orange-50 dark:bg-orange-900/20", icon: "text-orange-500 dark:text-orange-400", val: "text-orange-600 dark:text-orange-300" },
-    red:    { bg: "bg-red-50 dark:bg-red-900/20",    icon: "text-red-500 dark:text-red-400",    val: "text-red-600 dark:text-red-300"    },
+    blue:   { bg: "bg-blue-50 dark:bg-blue-900/20",   icon: "text-blue-600 dark:text-blue-400",   val: "text-blue-700 dark:text-blue-300",   glow: "hover:shadow-blue-200/50 dark:hover:shadow-blue-900/30",   ring: "hover:ring-blue-200 dark:hover:ring-blue-800"   },
+    green:  { bg: "bg-green-50 dark:bg-green-900/20",  icon: "text-green-600 dark:text-green-400",  val: "text-green-700 dark:text-green-300",  glow: "hover:shadow-green-200/50 dark:hover:shadow-green-900/30",  ring: "hover:ring-green-200 dark:hover:ring-green-800"  },
+    purple: { bg: "bg-purple-50 dark:bg-purple-900/20", icon: "text-purple-600 dark:text-purple-400", val: "text-purple-700 dark:text-purple-300", glow: "hover:shadow-purple-200/50 dark:hover:shadow-purple-900/30", ring: "hover:ring-purple-200 dark:hover:ring-purple-800" },
+    orange: { bg: "bg-orange-50 dark:bg-orange-900/20", icon: "text-orange-500 dark:text-orange-400", val: "text-orange-600 dark:text-orange-300", glow: "hover:shadow-orange-200/50 dark:hover:shadow-orange-900/30", ring: "hover:ring-orange-200 dark:hover:ring-orange-800" },
+    red:    { bg: "bg-red-50 dark:bg-red-900/20",    icon: "text-red-500 dark:text-red-400",    val: "text-red-600 dark:text-red-300",    glow: "hover:shadow-red-200/50 dark:hover:shadow-red-900/30",    ring: "hover:ring-red-200 dark:hover:ring-red-800"    },
   };
   const c = palette[color] ?? palette.blue;
   return (
@@ -41,10 +41,21 @@ export const StatCard = ({ icon: Icon, label, value, color, delay = 0 }) => {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35, ease: "easeOut" }}
-      className="bg-[var(--color-bg-card)] rounded-xl border border-[var(--color-border)] p-5 hover:shadow-sm transition-shadow"
+      whileHover={{ y: -6, scale: 1.03, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`bg-[var(--color-bg-card)] rounded-xl border border-[var(--color-border)] p-5 transition-all duration-300 group
+        hover:shadow-lg ${c.glow} hover:ring-1 ${c.ring} hover:border-transparent ${onClick ? "cursor-pointer" : ""}`}
     >
-      <div className={`w-10 h-10 rounded-lg ${c.bg} flex items-center justify-center mb-3`}>
-        <Icon className={`w-5 h-5 ${c.icon}`} />
+      <div className="flex items-start justify-between mb-3">
+        <div className={`w-10 h-10 rounded-lg ${c.bg} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
+          <Icon className={`w-5 h-5 ${c.icon} transition-transform duration-300 group-hover:rotate-[-8deg]`} />
+        </div>
+        {onClick && (
+          <span className="text-[10px] font-medium text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1 flex items-center gap-0.5">
+            View <ChevronRight className="w-3 h-3" />
+          </span>
+        )}
       </div>
       <p className="text-sm text-[var(--color-text-secondary)] mb-1">{label}</p>
       <p className={`text-2xl font-bold ${c.val}`}>{value}</p>
@@ -52,18 +63,40 @@ export const StatCard = ({ icon: Icon, label, value, color, delay = 0 }) => {
   );
 };
 
+/* ─── Chart helpers ─── */
+const formatChartDate = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const formatChartDateTime = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
 /* ─── Chart Tooltip ─── */
-const ChartTooltip = ({ active, payload, label }) => {
+const ChartTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
+  const data = payload[0]?.payload;
   return (
-    <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-lg shadow-lg p-3 text-sm">
-      <p className="font-medium text-[var(--color-text-primary)] mb-1 truncate max-w-[160px]">{label}</p>
-      <p className="text-blue-600 dark:text-blue-400 font-semibold">Score: {payload[0]?.value}%</p>
+    <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl shadow-xl p-3.5 text-sm min-w-[180px]">
+      <p className="font-semibold text-[var(--color-text-primary)] mb-1 truncate max-w-[200px]">{data?.name}</p>
+      <div className="flex items-center gap-1.5 text-[var(--color-text-secondary)] text-xs mb-2">
+        <CalendarClock className="w-3 h-3" />
+        <span>{data?.dateFormatted || "-"}</span>
+      </div>
+      <div className="flex items-center gap-2 pt-1.5 border-t border-[var(--color-border)]">
+        <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+        <span className="text-blue-600 dark:text-blue-400 font-bold text-base">{payload[0]?.value}%</span>
+        <span className="text-[var(--color-text-muted)] text-xs">Score</span>
+      </div>
     </div>
   );
 };
 
-/* ─── Trend Chart ─── */
+/* ─── Trend Chart (with date X-axis) ─── */
 export const TrendChart = ({ trendData }) => {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -71,7 +104,12 @@ export const TrendChart = ({ trendData }) => {
     return () => clearTimeout(t);
   }, []);
 
-  const chartData = trendData.map((t) => ({ label: t.assignment_name, value: t.score ?? 0 }));
+  const chartData = trendData.map((t) => ({
+    name: t.assignment_name,
+    date: formatChartDate(t.created_at),
+    dateFormatted: formatChartDateTime(t.created_at),
+    value: t.score ?? 0,
+  }));
 
   if (!chartData.length) {
     return (
@@ -94,10 +132,14 @@ export const TrendChart = ({ trendData }) => {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-            <XAxis dataKey="label" tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false}
-              tickFormatter={(v) => v.length > 10 ? v.slice(0, 10) + "…" : v} />
+            <XAxis
+              dataKey="date"
+              tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
             <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-            <Tooltip content={<ChartTooltip />} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--color-border)", strokeDasharray: "4 4" }} />
             <Area type="monotone" dataKey="value" name="Score"
               stroke="#3B82F6" strokeWidth={3} fill="url(#studentGrad)"
               dot={{ r: 4, fill: "#3B82F6", stroke: "var(--color-bg-card)", strokeWidth: 2 }}
@@ -129,10 +171,11 @@ export const AttemptedRow = ({ assignment, index, isProcessing = false }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
+      whileHover={{ y: -2, x: 2, transition: { type: "spring", stiffness: 400, damping: 25 } }}
       onClick={handleClick}
-      className="group flex items-center gap-4 p-4 bg-[var(--color-bg-secondary)] rounded-lg hover:bg-[var(--color-bg-card)] hover:shadow-sm hover:border-blue-200 dark:hover:border-blue-700 border border-transparent transition-all cursor-pointer"
+      className="group flex items-center gap-4 p-4 bg-[var(--color-bg-secondary)] rounded-lg hover:bg-[var(--color-bg-card)] hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700 border border-transparent transition-all duration-300 cursor-pointer"
     >
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 ${
         isProcessing
           ? "bg-amber-100 dark:bg-amber-900/20"
           : "bg-green-100 dark:bg-green-900/20"
@@ -178,9 +221,10 @@ export const AttemptedRow = ({ assignment, index, isProcessing = false }) => {
 export const NotAttemptedRow = ({ assignment, onUpload, index }) => (
   <motion.div
     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
-    className="flex items-center gap-4 p-4 bg-[var(--color-bg-secondary)] rounded-lg border border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-bg-card)] transition-all"
+    whileHover={{ y: -2, x: 2, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+    className="group flex items-center gap-4 p-4 bg-[var(--color-bg-secondary)] rounded-lg border border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-bg-card)] hover:shadow-md transition-all duration-300"
   >
-    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center shrink-0">
+    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
       <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
     </div>
     <div className="flex-1 min-w-0">
@@ -200,9 +244,10 @@ export const NotAttemptedRow = ({ assignment, onUpload, index }) => (
 export const MissedRow = ({ assignment, index }) => (
   <motion.div
     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
-    className="flex items-center gap-4 p-4 bg-[var(--color-bg-secondary)] rounded-lg opacity-60"
+    whileHover={{ y: -2, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+    className="group flex items-center gap-4 p-4 bg-[var(--color-bg-secondary)] rounded-lg opacity-70 hover:opacity-90 transition-all duration-300"
   >
-    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center shrink-0">
+    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
       <XCircle className="w-5 h-5 text-red-400" />
     </div>
     <div className="flex-1 min-w-0">

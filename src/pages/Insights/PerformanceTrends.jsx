@@ -1,15 +1,40 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Loader } from "lucide-react";
+import { Loader, CalendarClock } from "lucide-react";
 import { cardVariants } from "../../utils/animations";
 
-const CustomTooltip = ({ active, payload, label }) => {
+/* ─── Chart helpers ─── */
+const formatChartDate = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const formatChartDateTime = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
+/* ─── Enhanced Tooltip ─── */
+const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
+  const data = payload[0]?.payload;
   return (
-    <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-lg shadow-lg p-3 text-sm">
-      <p className="font-medium text-[var(--color-text-primary)] mb-1">{label}</p>
-      <p className="text-blue-600 dark:text-blue-400 font-semibold">Avg Score: {payload[0]?.value}%</p>
+    <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl shadow-xl p-3.5 text-sm min-w-[180px]">
+      <p className="font-semibold text-[var(--color-text-primary)] mb-1 truncate max-w-[200px]">{data?.name}</p>
+      {data?.dateFormatted && (
+        <div className="flex items-center gap-1.5 text-[var(--color-text-secondary)] text-xs mb-2">
+          <CalendarClock className="w-3 h-3" />
+          <span>{data.dateFormatted}</span>
+        </div>
+      )}
+      <div className="flex items-center gap-2 pt-1.5 border-t border-[var(--color-border)]">
+        <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+        <span className="text-blue-600 dark:text-blue-400 font-bold text-base">{payload[0]?.value}%</span>
+        <span className="text-[var(--color-text-muted)] text-xs">Avg Score</span>
+      </div>
     </div>
   );
 };
@@ -18,7 +43,12 @@ const PerformanceTrends = ({ trendData = [], isLoading }) => {
   const [ready, setReady] = useState(false);
   useEffect(() => { const t = setTimeout(() => setReady(true), 50); return () => clearTimeout(t); }, []);
 
-  const chartData = trendData.map((t) => ({ label: t.assignment_name, value: t.avg_score ?? 0 }));
+  const chartData = trendData.map((t) => ({
+    name: t.assignment_name,
+    date: formatChartDate(t.created_at),
+    dateFormatted: formatChartDateTime(t.created_at),
+    value: t.avg_score ?? 0,
+  }));
 
   return (
     <motion.div variants={cardVariants} initial="hidden" animate="visible"
@@ -47,9 +77,14 @@ const PerformanceTrends = ({ trendData = [], isLoading }) => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "var(--color-border)", strokeDasharray: "4 4" }} />
                 <Area type="monotone" dataKey="value" name="Avg Score" stroke="#3B82F6" strokeWidth={3} fill="url(#blueGrad)"
                   dot={{ r: 4, fill: "#3B82F6", stroke: "var(--color-bg-card)", strokeWidth: 2 }}
                   activeDot={{ r: 6, fill: "#3B82F6", stroke: "var(--color-bg-card)", strokeWidth: 2 }}

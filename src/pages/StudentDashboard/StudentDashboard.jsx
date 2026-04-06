@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, Trophy, Target, TrendingUp,
+  BookOpen, Trophy, TrendingUp,
   Clock, CheckCircle, XCircle, Loader,
   AlertCircle, AlertTriangle, ChevronRight,
+  Minus, Plus,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { getStudentDashboard, getAssignmentsList } from "../../services/studentService";
@@ -16,7 +17,9 @@ const PERIODS = ["week", "month", "year"];
 const StudentDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const trendRef = useRef(null);
   const [period, setPeriod] = useState("week");
+  const [periodValue, setPeriodValue] = useState(1);
   const [dashboardData, setDashboardData] = useState(null);
   const [previewData, setPreviewData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +30,7 @@ const StudentDashboard = () => {
     setIsLoading(true);
     setError("");
     Promise.all([
-      getStudentDashboard({ trendType: period, value: 1 }),
+      getStudentDashboard({ trendType: period, value: periodValue }),
       getAssignmentsList({ page: 1, pageSize: 3 }),
     ])
       .then(([dashRes, assRes]) => {
@@ -36,7 +39,7 @@ const StudentDashboard = () => {
       })
       .catch(() => setError("Failed to load dashboard. Please try again."))
       .finally(() => setIsLoading(false));
-  }, [period]);
+  }, [period, periodValue]);
 
   if (error) {
     return (
@@ -53,12 +56,10 @@ const StudentDashboard = () => {
   const improvementAreas = dashboard?.improvement_areas ?? [];
 
   const stats = [
-    { icon: BookOpen,      label: "Published Assignments", value: dashboard?.total_assignments ?? 0,    color: "blue",   delay: 0.05 },
-    { icon: CheckCircle,   label: "Attended",              value: dashboard?.assignments_attended ?? 0,  color: "green",  delay: 0.10 },
-    { icon: Trophy,        label: "Average Score",         value: `${dashboard?.average_score ?? 0}%`,  color: "purple", delay: 0.15 },
-    { icon: Target,        label: "Best Score",            value: `${dashboard?.best_score ?? 0}%`,     color: "orange", delay: 0.20 },
-    { icon: AlertTriangle, label: "Mistake Rate",          value: `${dashboard?.mistake_rate ?? 0}%`,   color: "red",    delay: 0.25 },
-    { icon: XCircle,       label: "Skipped",               value: dashboard?.skipped_assignments ?? 0,  color: "orange", delay: 0.30 },
+    { icon: BookOpen,    label: "Total Assignments", value: dashboard?.total_assignments ?? 0,    color: "blue",   delay: 0.05, onClick: () => navigate("/student/grading") },
+    { icon: CheckCircle, label: "Attended",           value: dashboard?.assignments_attended ?? 0,  color: "green",  delay: 0.10, onClick: () => navigate("/student/grading?tab=attempted") },
+    { icon: Trophy,      label: "Average Score",      value: `${dashboard?.average_score ?? 0}%`,  color: "purple", delay: 0.15, onClick: () => { trendRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); } },
+    { icon: XCircle,     label: "Missed",             value: dashboard?.skipped_assignments ?? 0,  color: "red",    delay: 0.20, onClick: () => navigate("/student/grading?tab=missed") },
   ];
 
   // Top 3 pending assignments preview
@@ -88,25 +89,37 @@ const StudentDashboard = () => {
         </div>
       ) : (
         <>
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {/* Stats Grid — 4 cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {stats.map((s) => <StatCard key={s.label} {...s} />)}
           </div>
 
           {/* Performance Trend */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-[var(--color-bg-card)] rounded-xl border border-[var(--color-border)] p-6">
+          <motion.div ref={trendRef} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="bg-[var(--color-bg-card)] rounded-xl border border-[var(--color-border)] p-6 scroll-mt-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h3 className="text-xl font-bold text-[var(--color-text-primary)] flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Performance Trend
               </h3>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {PERIODS.map((p) => (
-                  <button key={p} onClick={() => setPeriod(p)}
+                  <button key={p} onClick={() => { setPeriod(p); setPeriodValue(1); }}
                     className={`h-8 px-3 rounded-md text-sm font-medium capitalize transition-all ${
                       period === p ? "bg-blue-600 text-white shadow-sm" : "border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                     }`}>{p}</button>
                 ))}
+
+                <div className="flex items-center gap-1 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-secondary)] h-8 px-1.5 ml-1">
+                  <button onClick={() => setPeriodValue(Math.max(1, periodValue - 1))} disabled={periodValue <= 1}
+                    className="w-6 h-6 flex items-center justify-center rounded text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-sm font-semibold text-[var(--color-text-primary)] min-w-[48px] text-center">Last {periodValue}</span>
+                  <button onClick={() => setPeriodValue(periodValue + 1)}
+                    className="w-6 h-6 flex items-center justify-center rounded text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
             <TrendChart trendData={trendData} />
