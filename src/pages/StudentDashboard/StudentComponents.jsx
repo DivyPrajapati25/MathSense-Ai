@@ -26,7 +26,7 @@ export const ScoreBadge = ({ percentage }) => {
   );
 };
 
-/* ─── Stat Card (with hover animations + click) ─── */
+/* ─── Stat Card ─── */
 export const StatCard = ({ icon: Icon, label, value, color, delay = 0, onClick }) => {
   const palette = {
     blue:   { bg: "bg-blue-50 dark:bg-blue-900/20",   icon: "text-blue-600 dark:text-blue-400",   val: "text-blue-700 dark:text-blue-300",   glow: "hover:shadow-blue-200/50 dark:hover:shadow-blue-900/30",   ring: "hover:ring-blue-200 dark:hover:ring-blue-800"   },
@@ -85,7 +85,8 @@ const ChartTooltip = ({ active, payload }) => {
       <p className="font-semibold text-[var(--color-text-primary)] mb-1 truncate max-w-[200px]">{data?.name}</p>
       <div className="flex items-center gap-1.5 text-[var(--color-text-secondary)] text-xs mb-2">
         <CalendarClock className="w-3 h-3" />
-        <span>{data?.dateFormatted || "-"}</span>
+        {/* FIX: show full formatted date + time in tooltip */}
+        <span>{data?.dateFormatted ?? data?.date ?? "-"}</span>
       </div>
       <div className="flex items-center gap-2 pt-1.5 border-t border-[var(--color-border)]">
         <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
@@ -96,7 +97,8 @@ const ChartTooltip = ({ active, payload }) => {
   );
 };
 
-/* ─── Trend Chart (with date X-axis) ─── */
+/* ─── Trend Chart ─── */
+
 export const TrendChart = ({ trendData }) => {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -106,6 +108,9 @@ export const TrendChart = ({ trendData }) => {
 
   const chartData = trendData.map((t) => ({
     name: t.assignment_name,
+    label: t.assignment_name.length > 10
+      ? t.assignment_name.slice(0, 9) + "…"
+      : t.assignment_name,
     date: formatChartDate(t.created_at),
     dateFormatted: formatChartDateTime(t.created_at),
     value: t.score ?? 0,
@@ -121,10 +126,10 @@ export const TrendChart = ({ trendData }) => {
   }
 
   return (
-    <div style={{ width: "100%", height: 280 }}>
+    <div style={{ width: "100%", height: 320 }}>
       {ready && (
-        <ResponsiveContainer width="100%" height={280}>
-          <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+        <ResponsiveContainer width="100%" height={320}>
+          <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 60 }}>
             <defs>
               <linearGradient id="studentGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25} />
@@ -133,24 +138,47 @@ export const TrendChart = ({ trendData }) => {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
             <XAxis
-              dataKey="date"
+              dataKey="label"
+              tick={{ fill: "var(--color-text-secondary)", fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+              angle={0}
+              textAnchor="end"
+              height={70}
+            />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
               tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }}
               axisLine={false}
               tickLine={false}
+              tickFormatter={(v) => `${v}%`}
             />
-            <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }} axisLine={false} tickLine={false} />
-            <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--color-border)", strokeDasharray: "4 4" }} />
-            <Area type="monotone" dataKey="value" name="Score"
-              stroke="#3B82F6" strokeWidth={3} fill="url(#studentGrad)"
+            <Tooltip
+              content={<ChartTooltip />}
+              cursor={{ stroke: "#3B82F6", strokeWidth: 1, strokeDasharray: "4 4" }}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              name="Score"
+              stroke="#3B82F6"
+              strokeWidth={3}
+              fill="url(#studentGrad)"
               dot={{ r: 4, fill: "#3B82F6", stroke: "var(--color-bg-card)", strokeWidth: 2 }}
               activeDot={{ r: 6, fill: "#3B82F6", stroke: "var(--color-bg-card)", strokeWidth: 2 }}
-              isAnimationActive animationDuration={1200} animationEasing="ease-out" />
+              isAnimationActive
+              animationDuration={1200}
+              animationEasing="ease-out"
+            />
           </AreaChart>
         </ResponsiveContainer>
       )}
     </div>
   );
 };
+
 
 /* ─── Attempted Row ─── */
 export const AttemptedRow = ({ assignment, index, isProcessing = false }) => {

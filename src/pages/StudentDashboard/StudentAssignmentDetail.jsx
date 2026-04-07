@@ -124,7 +124,7 @@ const QuestionCard = ({ question, index }) => {
           {question.ai_feedback && (
             <div className="p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
               <p className="text-xs font-semibold text-purple-500 dark:text-purple-400 mb-3 flex items-center gap-1.5 uppercase tracking-wide">
-                <Brain className="w-3.5 h-3.5" /> Your Feedback
+                <Brain className="w-3.5 h-3.5" /> Feedback
               </p>
               <AIFeedbackDisplay feedback={question.ai_feedback} />
             </div>
