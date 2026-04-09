@@ -1,17 +1,49 @@
-# React + Vite
+# MathSense AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+MathSense AI is a dynamic, AI-powered educational platform designed to elevate math learning and teaching. It provides distinct experiences for both **Teachers** and **Students**, offering insightful performance analytics, assignment management, and intelligent progress tracking.
 
-Currently, two official plugins are available:  
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Dual Dashboards:** Custom-tailored portals for both Teachers and Students.
+- **Assignment Management:** Seamless pipeline for teachers to upload grading models and for students to track tasks.
+- **Deep Insights:** Comprehensive analytics (Performance Trends, Predictive Insights, Risk Assessments) leveraging student assessment data.
+- **Sleek UI/UX:** Built with a highly responsive, animated interface equipped with real-time **Light and Dark mode** themes.
+- **Secure Authentication:** Complete identity flow securely driven by JWT tokens, OTP verification, and role-based access.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend:** React 18, Vite
+- **Styling & Animations:** Framer Motion, Vanilla CSS Design System, Tailwind Utilities
+- **Routing:** React Router v6
+- **Icons:** Lucide React
+- **Validation:** Yup
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-    
+### Prerequisites
+
+Ensure you have [Node.js](https://nodejs.org/) installed.
+
+### Installation
+
+1. Clone the repository and navigate into the project folder:
+   ```bash
+   git clone <repository-url>
+   cd MathSense-AI
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up your environment variables. Create a `.env` file in the root directory:
+   ```env
+   VITE_BASE_URL=http://localhost:8000 # Example local API URL
+   ```
+
+### Running the Application
+
+To start the Vite development server:
+```bash
+npm run dev
+```
+Visit `http://localhost:5173` to view the application in your browser!

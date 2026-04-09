@@ -7,7 +7,6 @@ const api = axios.create({
     },
 });
 
-// ─── Request interceptor: attach access token ───
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("authToken");
@@ -19,7 +18,6 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// ─── Response interceptor: auto-refresh on 401 ───
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -51,10 +49,7 @@ api.interceptors.response.use(
         const isAuthRoute = AUTH_ROUTES.some((route) =>
             originalRequest.url.includes(route)
         );
-
-        // Only attempt refresh on 401, non-auth routes, and if not already retried
         if (error.response?.status !== 401 || isAuthRoute || originalRequest._retry) {
-            // For non-refreshable 401s on non-auth routes, force logout
             if (error.response?.status === 401 && !isAuthRoute && originalRequest._retry) {
                 localStorage.removeItem("authToken");
                 localStorage.removeItem("refreshToken");
@@ -66,14 +61,12 @@ api.interceptors.response.use(
 
         const refreshToken = localStorage.getItem("refreshToken");
         if (!refreshToken) {
-            // No refresh token available — logout
             localStorage.removeItem("authToken");
             localStorage.removeItem("userData");
             window.location.href = "/login";
             return Promise.reject(error);
         }
 
-        // If already refreshing, queue this request
         if (isRefreshing) {
             return new Promise((resolve, reject) => {
                 failedQueue.push({ resolve, reject });

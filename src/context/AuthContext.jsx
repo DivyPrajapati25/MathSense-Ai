@@ -29,6 +29,7 @@ const clearAuth = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userData");
+    localStorage.removeItem("profileImage");
 };
 
 export const AuthProvider = ({ children }) => {

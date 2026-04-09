@@ -27,13 +27,13 @@ const timeAgo = (iso) => {
 
 const STATUS_CONFIG = {
   COMPLETED: { icon: CheckCircle, color: "text-green-500 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/20", border: "border-green-200 dark:border-green-800", label: "Created" },
-  FAILED:    { icon: XCircle,     color: "text-red-500 dark:text-red-400",   bg: "bg-red-50 dark:bg-red-900/20",   border: "border-red-200 dark:border-red-800",   label: "Failed" },
+  FAILED: { icon: XCircle, color: "text-red-500 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/20", border: "border-red-200 dark:border-red-800", label: "Failed" },
 };
 
 const TABS = [
-  { label: "All",     value: "" },
+  { label: "All", value: "" },
   { label: "Created", value: "COMPLETED" },
-  { label: "Failed",  value: "FAILED" },
+  { label: "Failed", value: "FAILED" },
 ];
 
 const TimelineItem = ({ assignment, onView, onRetry, onDelete, isLast }) => {
@@ -97,10 +97,9 @@ const TimelineItem = ({ assignment, onView, onRetry, onDelete, isLast }) => {
             </div>
           </div>
 
-          {assignment.status === "FAILED" && assignment.error_message && (
-            <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
-              <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed">{assignment.error_message}</p>
+          {assignment.status === "FAILED" && (
+            <div className="mt-2 text-xs text-red-400">
+              Something went wrong
             </div>
           )}
         </div>
@@ -186,57 +185,55 @@ const RecentAssignments = ({ refreshTrigger, onReupload }) => {
       <div className="flex items-center gap-1.5 mb-5 p-1 bg-[var(--color-bg-secondary)] rounded-xl w-fit">
         {TABS.map((tab) => (
           <button key={tab.value} onClick={() => setActiveTab(tab.value)}
-            className={`h-8 px-4 rounded-lg text-xs font-medium transition-all ${
-              activeTab === tab.value
+            className={`h-8 px-4 rounded-lg text-xs font-medium transition-all ${activeTab === tab.value
                 ? "bg-[var(--color-bg-card)] text-[var(--color-text-primary)] shadow-sm"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-            }`}>
+              }`}>
             {tab.label}
           </button>
         ))}
       </div>
 
       {loading ? <LoadingSkeleton />
-      : error ? (
-        <div className="flex items-center justify-center gap-3 h-32 rounded-xl border border-dashed border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-          <AlertCircle className="w-5 h-5 text-red-500" />
-          <p className="text-red-500 dark:text-red-400 text-sm">{error}</p>
-        </div>
-      ) : assignments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-32 rounded-xl border border-dashed border-[var(--color-border)]">
-          <FileText className="w-6 h-6 text-[var(--color-text-muted)] mb-1.5" />
-          <p className="text-[var(--color-text-muted)] text-sm">No assignments found</p>
-        </div>
-      ) : (
-        <>
-          <div>
-            {assignments.map((a, i) => (
-              <TimelineItem key={a.assignment_id} assignment={a} onView={handleView} onRetry={onReupload} onDelete={setDeleteTarget} isLast={i === assignments.length - 1} />
-            ))}
+        : error ? (
+          <div className="flex items-center justify-center gap-3 h-32 rounded-xl border border-dashed border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <p className="text-red-500 dark:text-red-400 text-sm">{error}</p>
           </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-2 pt-4 border-t border-[var(--color-border)]">
-              <p className="text-xs text-[var(--color-text-muted)]">Page {page} of {totalPages} · {totalCount} total</p>
-              <div className="flex items-center gap-1.5">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map((p) => (
-                  <button key={p} onClick={() => setPage(p)}
-                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
-                      p === page ? "bg-blue-600 text-white shadow-sm" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
-                    }`}>{p}</button>
-                ))}
-                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+        ) : assignments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 rounded-xl border border-dashed border-[var(--color-border)]">
+            <FileText className="w-6 h-6 text-[var(--color-text-muted)] mb-1.5" />
+            <p className="text-[var(--color-text-muted)] text-sm">No assignments found</p>
+          </div>
+        ) : (
+          <>
+            <div>
+              {assignments.map((a, i) => (
+                <TimelineItem key={a.assignment_id} assignment={a} onView={handleView} onRetry={onReupload} onDelete={setDeleteTarget} isLast={i === assignments.length - 1} />
+              ))}
             </div>
-          )}
-        </>
-      )}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-2 pt-4 border-t border-[var(--color-border)]">
+                <p className="text-xs text-[var(--color-text-muted)]">Page {page} of {totalPages} · {totalCount} total</p>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map((p) => (
+                    <button key={p} onClick={() => setPage(p)}
+                      className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium transition-colors ${p === page ? "bg-blue-600 text-white shadow-sm" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+                        }`}>{p}</button>
+                  ))}
+                  <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
       <AnimatePresence>
         {deleteTarget && (

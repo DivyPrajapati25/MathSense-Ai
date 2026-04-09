@@ -1,7 +1,5 @@
 import api from "./api";
 
-// ─── Assignment Management ───
-
 export const uploadAssignment = (file, data) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -39,8 +37,6 @@ export const markReviewed = (assignmentId) =>
 
 export const publishAssignment = (assignmentId, deadline) =>
   api.patch(`/teacher/assignments/${assignmentId}/publish`, { deadline });
-
-// ─── Dashboard ───
 
 export const getDashboardSummary = () =>
   api.get("/teacher/dashboard");

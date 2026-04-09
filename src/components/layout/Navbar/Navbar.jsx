@@ -529,7 +529,7 @@ const Navbar = () => {
   const [profileDropOpen, setProfileDropOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [profile, setProfile] = useState(null);
-  const [profileImagePath, setProfileImagePath] = useState(null);
+  const [profileImagePath, setProfileImagePath] = useState(() => localStorage.getItem("profileImage") || null);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -564,7 +564,10 @@ const Navbar = () => {
     } catch { }
     try {
       const res = await getProfileImage();
-      setProfileImagePath(res.data?.data?.profile_image_path ?? null);
+      const path = res.data?.data?.profile_image_path ?? null;
+      setProfileImagePath(path);
+      if (path) localStorage.setItem("profileImage", path);
+      else localStorage.removeItem("profileImage");
     } catch { }
   }, []);
 
@@ -573,7 +576,11 @@ const Navbar = () => {
   const handleProfileClick = () => setProfileDropOpen((p) => !p);
   const handleEditClick    = () => { setProfileDropOpen(false); setEditModalOpen(true); };
   const handleProfileSaved = (updatedData) => setProfile((prev) => ({ ...prev, ...updatedData }));
-  const handleImageChanged = (newPath) => setProfileImagePath(newPath);
+  const handleImageChanged = (newPath) => {
+    setProfileImagePath(newPath);
+    if (newPath) localStorage.setItem("profileImage", newPath);
+    else localStorage.removeItem("profileImage");
+  };
   const handleNavClick     = (item) => navigate(item.path);
   const displayName        = profile?.first_name || user?.first_name || "User";
 

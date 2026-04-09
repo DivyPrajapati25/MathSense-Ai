@@ -1,17 +1,13 @@
 import api from "./api";
 
-// ─── User Profile ───
-
 export const getUserProfile = () =>
   api.get("/user/");
 
 export const updateUserProfile = (data) =>
   api.patch("/user/", data);
 
-// ─── Profile Image ───
-
 export const getProfileImage = () =>
-  api.get("/user/profile-image");
+  api.get("/user/profile-image", { params: { t: new Date().getTime() } });
 
 export const uploadProfileImage = (file) => {
   const formData = new FormData();
@@ -32,21 +28,19 @@ export const updateProfileImage = (file) => {
 export const deleteProfileImage = () =>
   api.delete("/user/delete-profile-image");
 
-/**
- * Build full image URL from the relative path returned by the API.
- * Returns null if no path is provided.
- */
 export const getProfileImageUrl = (relativePath) => {
-  if (!relativePath) return null;
+  if (!relativePath || relativePath === "None") return null;
+
+  let cleanPath = relativePath;
+  if (cleanPath.startsWith("None/")) {
+    cleanPath = cleanPath.substring(5);
+  }
+
   const base = import.meta.env.VITE_BASE_URL?.replace(/\/+$/, "") || "";
-  // The base URL already includes /api or similar path prefix,
-  // but profile images are served from the root domain.
-  // Extract origin from the base URL.
   try {
     const url = new URL(base);
-    return `${url.origin}/${relativePath}`;
+    return `${url.origin}/${cleanPath}`;
   } catch {
-    // If VITE_BASE_URL is a relative path, fall back
-    return `/${relativePath}`;
+    return `/${cleanPath}`;
   }
 };
